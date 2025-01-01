@@ -25,9 +25,17 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import EmailType
+import os
 
 UTC = pytz.utc
 IST = pytz.timezone("Asia/Kolkata")
+
+host = "mysql-erp-kansalerp.g.aivencloud.com"
+password = os.environ.get('password')
+database = "ERP"
+port = 18584
+user = "avnadmin"
+db_url = f"mysql+aiomysql://{user}:{password}@{host}:{port}/{database}"
 # db_url = "mysql+aiomysql://root:my-secret-pw@127.0.0.1:3306/learn"
 
 engine = create_async_engine(db_url, echo=True)
@@ -65,8 +73,8 @@ class User(Base):
 
 
 async def get_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # async with engine.begin() as conn:
+    # await conn.run_sync(Base.metadata.create_all)
     db = Sessionlocal()
     try:
         yield db
