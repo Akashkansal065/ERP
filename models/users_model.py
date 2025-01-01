@@ -28,8 +28,7 @@ from sqlalchemy_utils import EmailType
 
 UTC = pytz.utc
 IST = pytz.timezone("Asia/Kolkata")
-# db_url = "mysql+aiomysql://dp:dpcore1234@dp-uat-1.c0iswfmnnzar.ap-south-1.rds.amazonaws.com:3306/learn"
-db_url = "mysql+aiomysql://root:my-secret-pw@127.0.0.1:3306/learn"
+# db_url = "mysql+aiomysql://root:my-secret-pw@127.0.0.1:3306/learn"
 
 engine = create_async_engine(db_url, echo=True)
 Sessionlocal = async_sessionmaker(

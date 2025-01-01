@@ -12,6 +12,7 @@ class UserCreate(BaseModel):
     phone: str
     password: str
     name: str
+    address: str
 
     @field_validator("phone")
     def validate_phone(cls, value):
