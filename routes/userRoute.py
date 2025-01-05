@@ -38,6 +38,29 @@ async def verify_access_token(token: str):
         return None  # Return None if invalid or expired
 
 
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    payload = await verify_access_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=401, detail="Token is invalid or expired")
+    return payload
+
+
+async def get_admin_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
+    payload = await verify_access_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=401, detail="Token is invalid or expired"
+        )
+    result = await db.execute(select(User).filter(User.email == payload["sub"]))
+    user = result.scalars().first()
+    if str(user.role).lower() != 'admin':
+        raise HTTPException(
+            status_code=401, detail="Token is invalid or expired"
+        )
+    return payload
+
+
 @userR.post("/register")
 async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     try:
@@ -73,7 +96,8 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Async
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+@userR.post("/validate-token")
+async def validate_token(token: str = Depends(oauth2_scheme)):
     payload = await verify_access_token(token)
     if not payload:
         raise HTTPException(
@@ -81,19 +105,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return payload
 
 
-async def get_admin_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
-    payload = await verify_access_token(token)
-    if not payload:
+@userR.get("/dbhealthcheck")
+async def dbheatltcheck(db: AsyncSession = Depends(get_db)):
+    user = await db.execute(select(User))
+    if not user:
         raise HTTPException(
-            status_code=401, detail="Token is invalid or expired"
+            status_code=500, detail="Database not connected"
         )
-    result = await db.execute(select(User).filter(User.email == payload["sub"]))
-    user = result.scalars().first()
-    if str(user.role).lower() != 'admin':
-        raise HTTPException(
-            status_code=401, detail="Token is invalid or expired"
-        )
-    return payload
+    return {"status": "up"}
 
 
 # curl -X GET "http://127.0.0.1:8000/validate-token" -H "Authorization: Bearer <your-valid-token>"
