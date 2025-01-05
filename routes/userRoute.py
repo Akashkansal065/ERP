@@ -1,8 +1,9 @@
 from fastapi.security import OAuth2PasswordBearer
-from fastapi import Depends, HTTPException, Security
+from fastapi import Depends, HTTPException, Request, Security
 from jose import JWTError, jwt
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.routing import APIRouter
+from slowapi import Limiter
 from models.users_model import User, get_db
 from reqSchemas.UsersSchema import UserCreate, get_password_hash, verify_password
 # import jwt
@@ -12,6 +13,16 @@ from sqlalchemy import select
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 import pytz
+from fastapi import FastAPI
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler, Limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
+FastAPI().state.limiter = limiter
+FastAPI().add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 SECRET_KEY = "thiscanbechangedonruntime"
 ALGORITHM = "HS256"
@@ -106,13 +117,11 @@ async def validate_token(token: str = Depends(oauth2_scheme)):
 
 
 @userR.get("/dbhealthcheck")
-async def dbheatltcheck(db: AsyncSession = Depends(get_db)):
+@limiter.limit("3/minute")
+async def dbheatltcheck(request: Request, db: AsyncSession = Depends(get_db)):
     user = await db.execute(select(User))
     if not user:
         raise HTTPException(
             status_code=500, detail="Database not connected"
         )
     return {"status": "up", "timestamp": datetime.now(IST)}
-
-
-# curl -X GET "http://127.0.0.1:8000/validate-token" -H "Authorization: Bearer <your-valid-token>"

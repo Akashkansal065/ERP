@@ -1,4 +1,8 @@
+from slowapi.util import get_remote_address
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi import _rate_limit_exceeded_handler, Limiter
 import fastapi
+from slowapi import Limiter
 import uvicorn
 import traceback
 import random
@@ -40,6 +44,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.state.limiter = Limiter(key_func=get_remote_address)
+app.add_exception_handler(429, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 
 @app.get('/')
