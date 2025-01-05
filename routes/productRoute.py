@@ -4,7 +4,7 @@ from reqSchemas.productSchema import (
     ProductStockPriceCreate, ProductStockPriceUpdate, ProductStockPriceResponse,
     ProductPriceHistoryCreate, ProductPriceHistoryResponse
 )
-from models.products_model import Product, ProductVariant, ProductStockPrice, ProductPriceHistory
+from models.products_model import Product, ProductVariant, ProductStockPrice
 from sqlalchemy.orm import joinedload
 from sqlalchemy.future import select
 from fastapi import APIRouter, Depends, HTTPException
@@ -187,29 +187,6 @@ async def delete_stock_price(price_id: int, db: AsyncSession = Depends(get_db)):
     return {"message": "Stock price entry deleted successfully"}
 
 # --- Product Price History Endpoints ---
-
-
-@productR.post("/price-history", response_model=ProductPriceHistoryResponse)
-async def create_price_history(price_history: ProductPriceHistoryCreate, db: AsyncSession = Depends(get_db)):
-    new_price_history = ProductPriceHistory(
-        price_id=price_history.price_id,
-        old_purchase_price=price_history.old_purchase_price,
-        old_selling_price=price_history.old_selling_price,
-    )
-    db.add(new_price_history)
-    await db.commit()
-    await db.refresh(new_price_history)
-    return new_price_history
-
-
-@productR.get("/stock-prices/{price_id}/price-history", response_model=list[ProductPriceHistoryResponse])
-async def get_price_history_for_stock_price(price_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(ProductPriceHistory).filter(
-            ProductPriceHistory.price_id == price_id)
-    )
-    price_history = result.scalars().all()
-    return price_history
 
 
 # @productR.post("/create", response_model=ProductResponse)
