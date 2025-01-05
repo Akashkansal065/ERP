@@ -112,7 +112,7 @@ async def dbheatltcheck(db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=500, detail="Database not connected"
         )
-    return {"status": "up"}
+    return {"status": "up", "timestamp": datetime.now(IST)}
 
 
 # curl -X GET "http://127.0.0.1:8000/validate-token" -H "Authorization: Bearer <your-valid-token>"
