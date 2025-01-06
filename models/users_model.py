@@ -31,11 +31,6 @@ from config import constant
 UTC = pytz.utc
 IST = pytz.timezone("Asia/Kolkata")
 
-host = "mysql-erp-kansalerp.g.aivencloud.com"
-password = os.environ.get('password')
-database = "ERP"
-port = 18584
-user = "avnadmin"
 host = constant.get("db_host")
 database = constant.get("db_name")
 port = constant.get("db_port")
