@@ -32,6 +32,7 @@ UTC = pytz.utc
 IST = pytz.timezone("Asia/Kolkata")
 
 host = constant.get("db_host")
+password = os.environ.get('password')
 database = constant.get("db_name")
 port = constant.get("db_port")
 user = constant.get("db_username")
