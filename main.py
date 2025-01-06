@@ -9,7 +9,7 @@ import random
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import FastAPI
 from fastapi import status, Depends, Request
-from fastapi.responses import PlainTextResponse, RedirectResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from routes.userRoute import get_admin_user, get_current_user, userR
 from routes.productRoute import productR
@@ -44,14 +44,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = Limiter(key_func=get_remote_address)
 app.add_exception_handler(429, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
 
 @app.get('/')
+@limiter.limit(limit_value="200/minute")
 async def inde(request: Request, status_code=status.HTTP_200_OK):
     return RedirectResponse('/docs', status_code=status.HTTP_308_PERMANENT_REDIRECT)
+
+
+@app.get('/home')
+@limiter.limit(limit_value="2/minute")
+async def inde(request: Request):
+    return JSONResponse(content={"message": "Welcome to the home page!"}, status_code=status.HTTP_200_OK)
 
 
 @app.get("/protected-route")

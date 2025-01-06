@@ -38,7 +38,6 @@ class Vendor(Base):
     name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, nullable=False)
     phone = Column(String(15), nullable=False)
-    address = Column(String(500), nullable=False)
     category = Column(
         Enum('Buyer', 'Supplier', name="vendor_roles"), default='Buyer')
     gst = Column(String(15), nullable=True)
@@ -47,6 +46,8 @@ class Vendor(Base):
     bank_accounts = relationship(
         "Bank", back_populates="vendor", cascade="all, delete-orphan")
     stock_entries = relationship("ProductStockPrice", back_populates="vendor")
+    address = relationship(
+        "Address", back_populates="vendor", cascade="all, delete-orphan")
 
 
 class Bank(Base):
@@ -62,3 +63,15 @@ class Bank(Base):
 
     # Back relationship to Vendor
     vendor = relationship("Vendor", back_populates="bank_accounts")
+
+
+class Address(Base):
+    __tablename__ = "address"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    shipaddress = Column(String(500), nullable=False)
+    billingaddress = Column(String(500), nullable=False)
+    vendor_id = Column(Integer, ForeignKey(
+        'vendors.id', ondelete="CASCADE"), nullable=False)
+
+    # Back relationship to Vendor
+    vendor = relationship("Vendor", back_populates="address")

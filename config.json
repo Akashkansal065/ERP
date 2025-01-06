@@ -1,0 +1,9 @@
+{
+  "SECRET": "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",
+  "ALGORITHM": "HS256",
+  "db_username": "avnadmin",
+  "db_host": "mysql-erp-kansalerp.g.aivencloud.com",
+  "db_port": 18584,
+  "db_name": "ERP",
+  "ACCESS_TOKEN_EXPIRE_MINUTES": 300
+}

@@ -6,11 +6,10 @@ class VendorCreateRequest(BaseModel):
     name: str
     email: EmailStr
     phone: str
-    address: str
     category: str = "Buyer"
     gst: Optional[str] = None
 
-    @field_validator("name", "address")
+    @field_validator("name")
     def validate_non_empty(cls, value, field):
         if not value.strip():
             raise ValueError(f"{field.name.capitalize()} cannot be empty.")
@@ -48,3 +47,19 @@ class BankCreateRequest(BaseModel):
             raise ValueError(
                 "Bank account number cannot exceed 20 characters.")
         return value
+
+
+class AddressRequest(BaseModel):
+    shipaddress: str
+    billingaddress: str
+    vendor_id: int
+
+    @field_validator("shipaddress", "billingaddress")
+    def validate_non_empty(cls, value, field):
+        if not value.strip():
+            raise ValueError(f"{field.name.capitalize()} cannot be empty.")
+        return value.strip().capitalize()
+
+
+class UpdateAddress(AddressRequest):
+    address_id: int

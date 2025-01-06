@@ -26,6 +26,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import EmailType
 import os
+from config import constant
 
 UTC = pytz.utc
 IST = pytz.timezone("Asia/Kolkata")
@@ -35,6 +36,10 @@ password = os.environ.get('password')
 database = "ERP"
 port = 18584
 user = "avnadmin"
+host = constant.get("db_host")
+database = constant.get("db_name")
+port = constant.get("db_port")
+user = constant.get("db_username")
 db_url = f"mysql+aiomysql://{user}:{password}@{host}:{port}/{database}"
 # db_url = "mysql+aiomysql://root:my-secret-pw@127.0.0.1:3306/learn"
 
@@ -60,16 +65,6 @@ class User(Base):
                   default='customer')
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.now(IST))
-
-
-# class Token(Base):
-#     __tablename__ = "tokens"
-#     id = Column(Integer, primary_key=True, index=True)
-#     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-#     token_hash = Column(String(255), nullable=False)
-#     expires_at = Column(DateTime, nullable=False)
-#     created_at = Column(DateTime, default=datetime.now(IST))
-#     user = relationship("User")
 
 
 async def get_db():

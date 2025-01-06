@@ -19,17 +19,18 @@ from slowapi.util import get_remote_address
 from slowapi import _rate_limit_exceeded_handler, Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+from config import constant
+
 
 limiter = Limiter(key_func=get_remote_address)
 FastAPI().state.limiter = limiter
 FastAPI().add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
-SECRET_KEY = "thiscanbechangedonruntime"
-ALGORITHM = "HS256"
-userR = APIRouter(prefix='/user', tags=['User'])
-ACCESS_TOKEN_EXPIRE_MINUTES = 100
+SECRET_KEY = constant.get("SECRET")
+ALGORITHM = constant.get("ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = constant.get("ACCESS_TOKEN_EXPIRE_MINUTES")
 UTC = pytz.utc
 IST = pytz.timezone("Asia/Kolkata")
+userR = APIRouter(prefix='/user', tags=['User'])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/login")
 
 
