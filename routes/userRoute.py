@@ -109,7 +109,7 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Async
 
 
 @userR.post("/validate-token")
-async def validate_token(token: str = Depends(oauth2_scheme)):
+async def validate_token(request: Request, token: str = Depends(oauth2_scheme)):
     payload = await verify_access_token(token)
     if not payload:
         raise HTTPException(

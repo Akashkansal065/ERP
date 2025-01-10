@@ -124,7 +124,6 @@ async def get_vendor(vendor_id: int, current_user: dict = Depends(get_admin_user
         .options(joinedload(Vendor.address)).filter(Vendor.id == vendor_id)
     )
     vendor = result.scalars().unique().first()
-
     if not vendor:
         raise HTTPException(status_code=404, detail="Vendor not found")
 
@@ -139,20 +138,13 @@ async def get_vendor(vendor_id: int, current_user: dict = Depends(get_admin_user
         },
         "bank_accounts": [
             {
-                "id": bank.id,
-                "bank_ifsc": bank.bank_ifsc,
-                "bank_account_no": bank.bank_account_no,
-                "bank_account_name": bank.bank_account_name,
-                "bank_account_type": bank.bank_account_type,
-                "bank_branch": bank.bank_branch
+                bank
             }
             for bank in vendor.bank_accounts
         ],
         "address": [
             {
-                "id": address.id,
-                "shipaddress": address.shipaddress,
-                "bank_account_no": address.billingaddress,
+                address
             }
             for address in vendor.address
         ]
