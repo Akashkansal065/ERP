@@ -315,7 +315,7 @@ async def delete_bank_account(vendor_id: int, bank_id: int, current_user: dict =
     """
     result = await db.execute(select(Bank).filter(Bank.id == bank_id,
                                                   Bank.vendor_id == vendor_id))
-    bank = await result.scalar_one_or_none()
+    bank = result.scalar_one_or_none()
     if not bank:
         raise HTTPException(status_code=404, detail="Bank account not found")
 
