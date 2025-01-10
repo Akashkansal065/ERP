@@ -136,18 +136,8 @@ async def get_vendor(vendor_id: int, current_user: dict = Depends(get_admin_user
             "category": vendor.category,
             "gst": vendor.gst
         },
-        "bank_accounts": [
-            {
-                bank
-            }
-            for bank in vendor.bank_accounts
-        ],
-        "address": [
-            {
-                address
-            }
-            for address in vendor.address
-        ]
+        "bank_accounts": [bank for bank in vendor.bank_accounts],
+        "address": [address for address in vendor.address]
 
     }
 
