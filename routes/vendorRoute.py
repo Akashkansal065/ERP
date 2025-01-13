@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import pytz
 
 from reqSchemas.vendorSchema import AddressRequest, BankCreateRequest, UpdateAddress, VendorCreateRequest
+from routes.cache_router import cache_decorator
 from routes.userRoute import get_admin_user, get_current_user
 
 vendorR = APIRouter(prefix='/vendor', tags=['Vendor'])
@@ -19,7 +20,7 @@ IST = pytz.timezone("Asia/Kolkata")
 
 
 @vendorR.post("/create_vendor", response_model=None)
-async def create_vendor(vendor: VendorCreateRequest, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def create_vendor(request: Request, vendor: VendorCreateRequest, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     """
     Create a new vendor.
 
@@ -40,40 +41,42 @@ async def create_vendor(vendor: VendorCreateRequest, current_user: dict = Depend
         await db.commit()
         await db.refresh(new_product)
     except Exception as e:
-        return {"message": str(e)}
+        raise HTTPException(status_code=404, detail=str(e))
+        # return {"message": str(e)}
     return new_product
 
 
-@vendorR.get("/all_vendors")
-async def get_all_vendors(current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-    """
-    Fetch all vendors from the database.
+# @vendorR.get("/all_vendors")
+# # @cache_decorator(expire=360)
+# async def get_all_vendors(request: Request, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+#     """
+#     Fetch all vendors from the database.
 
-    This asynchronous function retrieves all vendor records from the database.
-    It requires the current user to be an admin and uses dependency injection
-    to get the database session.
+#     This asynchronous function retrieves all vendor records from the database.
+#     It requires the current user to be an admin and uses dependency injection
+#     to get the database session.
 
-    Args:
-        current_user (dict): The current user, expected to be an admin.
-        db (AsyncSession): The database session.
+#     Args:
+#         current_user (dict): The current user, expected to be an admin.
+#         db (AsyncSession): The database session.
 
-    Returns:
-        list: A list of all vendor records.
-    """
-    result = await db.execute(select(Vendor))
-    vendors = result.scalars().all()
-    return vendors
+#     Returns:
+#         list: A list of all vendor records.
+#     """
+#     result = await db.execute(select(Vendor))
+#     vendors = result.scalars().all()
+#     return vendors
 
 
 @vendorR.get("/all_vendors_all_details")
-async def get_all_vendors_all_details(current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def get_all_vendors_all_details(request: Request, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Vendor).options(joinedload(Vendor.bank_accounts), (joinedload(Vendor.address))))
     vendors = result.scalars().unique().all()
     return vendors
 
 
 @vendorR.get("/email_phone/{email_phone}")
-async def get_vendor_by_email_or_phone(email_phone: str, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def get_vendor_by_email_or_phone(request: Request, email_phone: str, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     """
     Retrieve vendor details by email or phone number.
 
@@ -103,7 +106,7 @@ async def get_vendor_by_email_or_phone(email_phone: str, current_user: dict = De
 
 
 @vendorR.get("/by_id/{vendor_id}")
-async def get_vendor(vendor_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def get_vendor(request: Request, vendor_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     """
     Endpoint to retrieve a vendor by its ID.
 
@@ -143,7 +146,7 @@ async def get_vendor(vendor_id: int, current_user: dict = Depends(get_admin_user
 
 
 @vendorR.put("/update/{vendor_id}")
-async def update_vendor(vendor_id: int, vendor: VendorCreateRequest, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def update_vendor(request: Request, vendor_id: int, vendor: VendorCreateRequest, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     """
     Update an existing vendor's information.
 
@@ -174,7 +177,7 @@ async def update_vendor(vendor_id: int, vendor: VendorCreateRequest, current_use
 
 
 @vendorR.delete("/delete/{vendor_id}")
-async def delete_vendor(vendor_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def delete_vendor(request: Request, vendor_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     """
     Delete a vendor by ID.
 
@@ -200,7 +203,7 @@ async def delete_vendor(vendor_id: int, current_user: dict = Depends(get_admin_u
 
 
 @vendorR.get("/all_bank_accounts")
-async def getAllBankAccounts(current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def getAllBankAccounts(request: Request, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     """
     Get all bank accounts for all vendors.
 
@@ -217,7 +220,7 @@ async def getAllBankAccounts(current_user: dict = Depends(get_admin_user), db: A
 
 
 @vendorR.get("/{vendor_id}/bank-accounts")
-async def getVendorBankAccounts(vendor_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def getVendorBankAccounts(request: Request, vendor_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     """
     Get all bank accounts for a specific vendor.
 
@@ -235,7 +238,7 @@ async def getVendorBankAccounts(vendor_id: int, current_user: dict = Depends(get
 
 
 @vendorR.post("/{vendor_id}/bank-accounts")
-async def add_bank_account(vendor_id: int, bank: BankCreateRequest, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def add_bank_account(request: Request, vendor_id: int, bank: BankCreateRequest, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     """
     Add a bank account for a vendor.
 
@@ -265,7 +268,7 @@ async def add_bank_account(vendor_id: int, bank: BankCreateRequest, current_user
 
 
 @vendorR.put("/{vendor_id}/bank-accounts/{bank_id}")
-async def update_bank_account(vendor_id: int, bank_id: int, bank: BankCreateRequest, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def update_bank_account(request: Request, vendor_id: int, bank_id: int, bank: BankCreateRequest, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     """
     Update a bank account for a specific vendor.
 
@@ -297,7 +300,7 @@ async def update_bank_account(vendor_id: int, bank_id: int, bank: BankCreateRequ
 
 
 @vendorR.delete("/{vendor_id}/bank-accounts/{bank_id}")
-async def delete_bank_account(vendor_id: int, bank_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def delete_bank_account(request: Request, vendor_id: int, bank_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     """
     Delete a bank account for a specific vendor.
 
@@ -332,14 +335,14 @@ async def getAllAddress(request: Request, db: AsyncSession = Depends(get_db), cu
 
 
 @vendorR.get("/address_by_id/{vendor_id}")
-async def getAddressByVendorId(vendor_id: int, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
+async def getAddressByVendorId(request: Request, vendor_id: int, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
     result = await db.execute(select(Address).filter(Address.vendor_id == vendor_id))
     address = result.scalars().all()
     return address
 
 
 @vendorR.post("/{vendor_id}/address")
-async def addAddresss(vendor_id: int, address: AddressRequest, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
+async def addAddresss(request: Request, vendor_id: int, address: AddressRequest, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
     result = await db.execute(select(Vendor).filter(
         Vendor.id == vendor_id))
     vendor = result.scalar_one_or_none()
@@ -354,7 +357,7 @@ async def addAddresss(vendor_id: int, address: AddressRequest, db: AsyncSession 
 
 
 @vendorR.put("/{vendor_id}/address/{address_id}")
-async def updateAddresss(vendor_id: int, address_id: int, addres: UpdateAddress, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
+async def updateAddresss(request: Request, vendor_id: int, address_id: int, addres: UpdateAddress, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
     result = await db.execute(select(Address).filter(
         Address.id == address_id, Address.vendor_id == vendor_id))
     existing_address = result.scalar_one_or_none()
@@ -370,12 +373,12 @@ async def updateAddresss(vendor_id: int, address_id: int, addres: UpdateAddress,
 
 
 @vendorR.delete("/{vendor_id}/address/{address_id}")
-async def delete_address(vendor_id: int, address_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def delete_address(request: Request, vendor_id: int, address_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Address).filter(Address.id == address_id,
                                                      Address.vendor_id == vendor_id))
-    address = await result.scalar_one_or_none()
+    address = result.scalar_one_or_none()
     if not address:
-        raise HTTPException(status_code=404, detail="Bank account not found")
+        raise HTTPException(status_code=404, detail="Address not found")
 
     await db.delete(address)
     await db.commit()

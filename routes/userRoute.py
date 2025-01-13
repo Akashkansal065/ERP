@@ -74,7 +74,7 @@ async def get_admin_user(token: str = Depends(oauth2_scheme), db: AsyncSession =
 
 
 @userR.post("/register")
-async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
+async def register_user(request: Request, user: UserCreate, db: AsyncSession = Depends(get_db)):
     try:
         existing_user = await db.execute(select(User).filter(User.email == user.email))
         user_data = existing_user.scalars().one()
@@ -98,7 +98,7 @@ async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
 
 
 @userR.post("/login")
-async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+async def login_user(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     user_data = await db.execute(select(User).filter(User.email == form_data.username))
     user = user_data.scalars().first()
     if not user or not verify_password(form_data.password, user.password_hash):

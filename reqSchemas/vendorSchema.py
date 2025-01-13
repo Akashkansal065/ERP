@@ -25,25 +25,25 @@ class VendorCreateRequest(BaseModel):
     is_cost_based_on_margin: Optional[str] = Field(
         None, description="Cost based on margin status")
 
-    @field_validator("name")
+    @field_validator("name", mode="before")
     def validate_non_empty(cls, value, field):
         if not value.strip():
             raise ValueError(f"{field.name.capitalize()} cannot be empty.")
         return value
 
-    @field_validator("email")
+    @field_validator("email", mode="before")
     def validate_non_empty(cls, value, field):
         if not value.strip():
             raise ValueError(f"{field.name.capitalize()} cannot be empty.")
         return value.strip().lower()
 
-    @field_validator("phone")
+    @field_validator("phone", mode="before")
     def validate_phone(cls, value):
         if len(value) != 10 or not value.isdigit():
             raise ValueError("Phone number must be exactly 10 digits.")
         return value
 
-    @field_validator("category")
+    @field_validator("category", mode="before")
     def validate_category(cls, value):
         if value not in {"Buyer", "Supplier"}:
             raise ValueError("Category must be either 'Buyer' or 'Supplier'.")
@@ -60,13 +60,13 @@ class BankCreateRequest(BaseModel):
         None, description="Type of the bank account")
     bank_branch: str = Field(None, description="Bank branch name")
 
-    @field_validator("bank_ifsc")
+    @field_validator("bank_ifsc", mode="before")
     def validate_ifsc(cls, value):
         if value and len(value) != 11:
             raise ValueError("IFSC code must be exactly 11 characters.")
         return value
 
-    @field_validator("bank_account_no")
+    @field_validator("bank_account_no", mode="before")
     def validate_account_no(cls, value):
         if value and len(value) > 30:
             raise ValueError(
@@ -104,7 +104,7 @@ class AddressRequest(BaseModel):
     bill_pincode: Optional[str] = Field(
         None, description="Pincode for billing")
 
-    @field_validator("ship_address", "billing_address")
+    @field_validator("ship_address", "billing_address", mode="before")
     def validate_non_empty(cls, value, field):
         if not value.strip():
             raise ValueError(f"{field.name.capitalize()} cannot be empty.")
@@ -112,4 +112,4 @@ class AddressRequest(BaseModel):
 
 
 class UpdateAddress(AddressRequest):
-    address_id: int
+    pass
