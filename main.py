@@ -29,8 +29,8 @@ allowed_origins = [
     "http://127.0.0.1",
     "https://localhost",
     "https://127.0.0.1",
-    "https://kitchen-murex-nine.vercel.app",
-    "http://kitchen-murex-nine.vercel.app"
+    "https://kansaltraders.vercel.app",
+    "http://kansaltraders.vercel.app/"
 ]
 # Add wildcard subdomains for *.angelone.in
 # allowed_origins.extend(
