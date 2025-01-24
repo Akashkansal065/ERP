@@ -51,11 +51,13 @@ class Vendor(Base):
     credit_days = Column(Integer, nullable=True)
     sor_days = Column(Integer, nullable=True)
     is_cost_based_on_margin = Column(String(255), nullable=True)
-
+    created_at = Column(DateTime, default=datetime.now(IST))
+    updated_at = Column(DateTime, default=datetime.now(IST),
+                        onupdate=datetime.now(IST))
     # Relationships
     bank_accounts = relationship(
         "Bank", back_populates="vendor", cascade="all, delete-orphan")
-    stock_entries = relationship("ProductStockPrice", back_populates="vendor")
+    stock_entries = relationship("ProductSku", back_populates="vendor")
     address = relationship(
         "Address", back_populates="vendor", cascade="all, delete-orphan")
 
@@ -71,7 +73,9 @@ class Bank(Base):
     bank_branch = Column(String(255), nullable=True)
     vendor_id = Column(Integer, ForeignKey(
         'vendors.id', ondelete="CASCADE"), nullable=False, index=True)
-
+    created_at = Column(DateTime, default=datetime.now(IST))
+    updated_at = Column(DateTime, default=datetime.now(IST),
+                        onupdate=datetime.now(IST))
     # Back relationship to Vendor
     vendor = relationship("Vendor", back_populates="bank_accounts")
 
@@ -100,6 +104,8 @@ class Address(Base):
     bill_pincode = Column(String(15), nullable=True)
     vendor_id = Column(Integer, ForeignKey(
         'vendors.id', ondelete="CASCADE"), nullable=False, index=True)
-
+    updated_at = Column(DateTime, default=datetime.now(IST),
+                        onupdate=datetime.now(IST))
+    created_at = Column(DateTime, default=datetime.now(IST))
     # Back relationship to Vendor
     vendor = relationship("Vendor", back_populates="address")

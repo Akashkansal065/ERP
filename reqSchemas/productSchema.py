@@ -1,71 +1,30 @@
+from enum import Enum as PyEnum
+from typing import Optional
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 from decimal import Decimal
 
 
-# Product Schemas
-class ProductCreate(BaseModel):
+from pydantic import BaseModel
+from typing import List, Optional
+from datetime import datetime
+
+# Product schemas
+
+
+class ProductBase(BaseModel):
     name: str
     description: Optional[str] = None
     category: Optional[str] = None
 
 
-class ProductUpdate(BaseModel):
-    name: Optional[str]
-    description: Optional[str]
-    category: Optional[str]
+class ProductCreate(ProductBase):
+    pass
 
 
-# Product Variant Schemas
-class ProductVariantCreate(BaseModel):
-    product_id: int
-    size: Optional[str] = None
-    weight: Optional[Decimal] = None
-
-
-class ProductVariantUpdate(BaseModel):
-    size: Optional[str]
-    weight: Optional[Decimal]
-
-
-# Product Stock Price Schemas
-class ProductStockPriceCreate(BaseModel):
-    variant_id: int
-    vendor_id: int
-    stock: Optional[int] = 0
-    purchase_price: Decimal
-    selling_price: Optional[Decimal] = None
-
-
-class ProductStockPriceUpdate(BaseModel):
-    stock: Optional[int]
-    purchase_price: Optional[Decimal]
-    selling_price: Optional[Decimal]
-
-
-# Product Price History Schemas
-class ProductPriceHistoryCreate(BaseModel):
-    price_id: int
-    old_purchase_price: Decimal
-    old_selling_price: Decimal
-
-
-# Vendor-related schemas (optional based on your model)
-class VendorCreate(BaseModel):
-    name: str
-    email: str
-    phone: str
-    address: str
-    category: str = "Buyer"
-    gst: Optional[str] = None
-
-
-class ProductResponse(BaseModel):
+class ProductResponse(ProductBase):
     id: int
-    name: str
-    description: Optional[str]
-    category: Optional[str]
     created_at: datetime
     updated_at: datetime
 
@@ -73,35 +32,83 @@ class ProductResponse(BaseModel):
         from_attributes = True
 
 
-class ProductVariantResponse(BaseModel):
+# Define the Unit Enum for the schema
+
+
+class UnitEnum(str, PyEnum):
+    CARTON_BOX = "Carton Box"
+    EACH = "EACH"
+    KARTON = "karton"
+    KG = "KG"
+    PIECES = "PIECES"
+    SET = "SET"
+
+
+# SKU schemas
+class SKUBase(BaseModel):
+    size: Optional[str] = None
+    weight: Optional[float] = None
+    color: Optional[str] = None
+    material: Optional[str] = None
+    selling_price: Optional[float] = None
+    hsn_sac_code: Optional[str] = None
+    is_active: Optional[bool] = True
+    is_gst_applicable: Optional[bool] = True
+    gst_rate: Optional[float] = 0.00
+    cgst: Optional[float] = 0.00
+    sgst: Optional[float] = 0.00
+    unit: UnitEnum
+
+
+class SKUCreate(SKUBase):
+    sku: str
+    vendor_id: int
+    product_id: int
+
+
+class SKUResponse(SKUBase):
     id: int
     product_id: int
-    size: Optional[str]
-    weight: Optional[Decimal]
-
-    class Config:
-        from_attributes = True
-
-
-class ProductStockPriceResponse(BaseModel):
-    id: int
-    variant_id: int
-    vendor_id: int
-    stock: int
-    purchase_price: Decimal
-    selling_price: Optional[Decimal]
     created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
 
 
-class ProductPriceHistoryResponse(BaseModel):
+# Stock and Price schemas
+class StockPriceBase(BaseModel):
+    stock: int
+    purchase_price: float
+    warehouse: str
+
+
+class StockPriceCreate(StockPriceBase):
+    sku_id: int
+
+
+class StockPriceResponse(StockPriceBase):
     id: int
-    price_id: int
-    old_purchase_price: Decimal
-    old_selling_price: Decimal
-    changed_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# Image schemas
+class ImageBase(BaseModel):
+    image_url: str
+    alt_text: Optional[str] = None
+
+
+class ImageCreate(ImageBase):
+    sku_id: int
+
+
+class ImageResponse(ImageBase):
+    id: int
+    created_at: datetime
 
     class Config:
         from_attributes = True
