@@ -199,7 +199,7 @@ async def get_image(request: Request, image_id: int, current_user: dict = Depend
 
 
 @productR.delete("/delete-image/{image_id}")
-async def delete_image(image_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_image(image_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ProductImages).filter(ProductImages.id == image_id))
     image = result.scalar_one_or_none()
 
