@@ -38,6 +38,8 @@ class ProductSku(Base):
     id = Column(Integer, primary_key=True, index=True)
     product_id = Column(Integer, ForeignKey(
         "products.id"), nullable=False, index=True)
+    sku_name = Column(String(100),
+                      nullable=False, index=True)
     sku = Column(String(100),
                  nullable=False, index=True, unique=True)
     size = Column(String(50), nullable=True)  # e.g., Small, Medium, Large

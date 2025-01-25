@@ -1,10 +1,12 @@
+from utils.kitimages import imagekit
+from io import BytesIO
 from reqSchemas.productSchema import (
     ImageCreate, ImageResponse, ProductCreate, ProductResponse,
     SKUCreate, SKUResponse, StockPriceCreate, StockPriceResponse
 )
 from models.products_model import Product, ProductImages, ProductSku, ProductStockPrice
 from sqlalchemy.future import select
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile
 from fastapi import Depends, HTTPException
 from fastapi.routing import APIRouter
 from models.products_model import Product
@@ -13,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import pytz
 
 from reqSchemas.productSchema import ProductCreate, ProductResponse
+from routes.userRoute import get_admin_user
 
 productR = APIRouter(prefix='/product', tags=['Product'])
 UTC = pytz.utc
@@ -21,7 +24,7 @@ IST = pytz.timezone("Asia/Kolkata")
 
 # Product Endpoints
 @productR.post("/create_product/", response_model=ProductResponse)
-async def create_product(product: ProductCreate, db: AsyncSession = Depends(get_db)):
+async def create_product(request: Request, product: ProductCreate, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     new_product = Product(**product.model_dump())
     db.add(new_product)
     await db.commit()
@@ -30,7 +33,7 @@ async def create_product(product: ProductCreate, db: AsyncSession = Depends(get_
 
 
 @productR.get("/get_product/{product_id}", response_model=ProductResponse)
-async def get_product(product_id: int, db: AsyncSession = Depends(get_db)):
+async def get_product(request: Request, product_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Product).filter(Product.id == product_id))
     product = result.scalar_one_or_none()
     if not product:
@@ -40,7 +43,7 @@ async def get_product(product_id: int, db: AsyncSession = Depends(get_db)):
 
 # SKU Endpoints
 @productR.post("/create_sku", response_model=SKUResponse)
-async def create_sku(sku: SKUCreate, db: AsyncSession = Depends(get_db)):
+async def create_sku(request: Request, sku: SKUCreate, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Product).filter(Product.id == sku.product_id))
     product = result.scalar_one_or_none()
     if not product:
@@ -53,7 +56,7 @@ async def create_sku(sku: SKUCreate, db: AsyncSession = Depends(get_db)):
 
 
 @productR.get("/get_sku/{sku_id}", response_model=SKUResponse)
-async def get_sku(sku_id: str, db: AsyncSession = Depends(get_db)):
+async def get_sku(request: Request, sku_id: str, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku_id))
     sku = result.scalar_one_or_none()
     if not sku:
@@ -62,7 +65,7 @@ async def get_sku(sku_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @productR.put("/update_sku/{sku_id}", response_model=SKUResponse)
-async def update_sku(sku_id: str, sku_data: SKUCreate, db: AsyncSession = Depends(get_db)):
+async def update_sku(request: Request, sku_id: str, sku_data: SKUCreate, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku_id))
     sku = result.scalar_one_or_none()
     if not sku:
@@ -77,7 +80,7 @@ async def update_sku(sku_id: str, sku_data: SKUCreate, db: AsyncSession = Depend
 
 
 @productR.delete("/delete_sku/{sku_id}")
-async def delete_sku(sku_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_sku(request: Request, sku_id: str, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku_id))
     sku = result.scalar_one_or_none()
     if not sku:
@@ -90,7 +93,7 @@ async def delete_sku(sku_id: str, db: AsyncSession = Depends(get_db)):
 
 # Stock and Price Endpoints
 @productR.post("/cretae_skus_stock_price/{sku_id}", response_model=StockPriceResponse)
-async def create_stock_price(sku_id: str, stock_price: StockPriceCreate, db: AsyncSession = Depends(get_db)):
+async def create_stock_price(request: Request, sku_id: str, stock_price: StockPriceCreate, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku_id))
     sku = result.scalar_one_or_none()
     if not sku:
@@ -104,7 +107,7 @@ async def create_stock_price(sku_id: str, stock_price: StockPriceCreate, db: Asy
 
 
 @productR.get("/stock_price/{sku_id}", response_model=StockPriceResponse)
-async def get_stock_price(sku_id: str, db: AsyncSession = Depends(get_db)):
+async def get_stock_price(request: Request, sku_id: str, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku_id))
     sku = result.scalar_one_or_none()
     if not sku:
@@ -115,15 +118,48 @@ async def get_stock_price(sku_id: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Stock price not found")
     return stock_price
 
+# Image Upload Endpoint
 
-# Image Endpoints
-@productR.post("/skus/{sku_id}/images/", response_model=ImageResponse)
-async def create_image(sku_id: str, image: ImageCreate, db: AsyncSession = Depends(get_db)):
+
+@productR.post("/upload-image/", response_model=ImageResponse)
+async def upload_image(request: Request,
+                       sku_id: str = Form(...),
+                       file: UploadFile = Form(...),
+                       current_user: dict = Depends(get_admin_user),
+                       db: AsyncSession = Depends(get_db)
+                       ):
+    # Check if SKU exists
     result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku_id))
     sku = result.scalar_one_or_none()
     if not sku:
         raise HTTPException(status_code=404, detail="SKU not found")
-    new_image = ProductImages(sku_id=sku_id, **image.dict())
+
+    # Read image file bytes
+    file_content = await file.read()
+    file_stream = BytesIO(file_content)
+
+    # Upload to ImageKit
+    try:
+        upload_response = imagekit.upload(
+            file=file_stream,
+            file_name=file.filename,
+            options={
+                "folder": f"/product_images/{sku_id}/",
+                "use_unique_file_name": True,
+                "tags": ["product", f"sku_{sku_id}"],
+            }
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error uploading to ImageKit: {str(e)}")
+
+    # Store image URL in DB
+    new_image = ProductImages(
+        sku_id=sku.id,
+        image_url=upload_response.get("url"),
+        alt_text=sku_id
+    )
+
     db.add(new_image)
     await db.commit()
     await db.refresh(new_image)
@@ -131,7 +167,7 @@ async def create_image(sku_id: str, image: ImageCreate, db: AsyncSession = Depen
 
 
 @productR.get("/images/{image_id}", response_model=ImageResponse)
-async def get_image(image_id: int, db: AsyncSession = Depends(get_db)):
+async def get_image(request: Request, image_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ProductImages).filter(ProductImages.id == image_id))
     image = result.scalar_one_or_none()
     if not image:

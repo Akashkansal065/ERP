@@ -46,6 +46,7 @@ class UnitEnum(str, PyEnum):
 
 # SKU schemas
 class SKUBase(BaseModel):
+    sku_name: str
     size: Optional[str] = None
     weight: Optional[float] = None
     color: Optional[str] = None
@@ -98,12 +99,13 @@ class StockPriceResponse(StockPriceBase):
 
 # Image schemas
 class ImageBase(BaseModel):
-    image_url: str
-    alt_text: Optional[str] = None
+    # image_url: str
+    # alt_text: Optional[str] = None
+    pass
 
 
 class ImageCreate(ImageBase):
-    sku_id: int
+    sku_id: str
 
 
 class ImageResponse(ImageBase):
