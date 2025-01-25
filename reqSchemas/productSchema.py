@@ -34,7 +34,7 @@ class ProductResponse(ProductBase):
 class UnitEnum(str, PyEnum):
     CARTON_BOX = "Carton Box"
     EACH = "EACH"
-    KARTON = "karton"
+    KARTON = "KARTON"
     KG = "KG"
     PIECES = "PIECES"
     SET = "SET"

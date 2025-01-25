@@ -10,7 +10,7 @@ from diskcache import Cache
 
 from routes import userRoute
 
-ROOT_DIR_PROJECT = Path(__file__).parent
+ROOT_DIR_PROJECT = Path(__file__).parent.parent
 if plat.system() == "Windows":
     path = str(ROOT_DIR_PROJECT) + os.sep + "cache_dir"
 else:
@@ -19,33 +19,25 @@ cache = Cache(path)
 cache_route = APIRouter(tags=["Cache"])
 
 
-def cache_decorator(expire=10):
+def cache_decorator(expire=3600):
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             serialized_args = dict(args)
             serialized_kwargs = dict(kwargs)
             print(serialized_kwargs.get('request').scope.get('path'))
-            print(serialized_kwargs.get('request').__dict__)
-            print(serialized_kwargs.get('request').headers)
-            print(serialized_kwargs.get('request').headers.get('Authorization'))
-            token = serialized_kwargs.get('request').headers.get(
-                'Authorization').split('Bearer')[1].strip()
-            current_user: dict = await userRoute.get_current_user(token)
-            print(current_user)
             # Create a unique cache key based on function name and parameters
-            # key = sha256(
-            #     f"{func.__name__}{serialized_kwargs.get('req')}{serialized_kwargs.get('request').url.path}".encode(
-            #     )
-            # ).hexdigest()
-            key = sha256(str((func.__name__, serialized_args,
-                         serialized_kwargs)).encode()).hexdigest()
-            key = sha256((func.__name__, args, kwargs).encode()).hexdigest()
-            # print(key)
+            key = sha256(
+                f"{func.__name__}{serialized_kwargs.get('request').scope.get('path')}".encode()).hexdigest()
+            print(func.__name__)
+            print(key)
             data = cache.get(key)
             if not data:
-                data = await func(*args, **kwargs)
-                cache.set(key, data, expire=expire)
+                try:
+                    data = await func(*args, **kwargs)
+                    cache.set(key, data, expire=expire)
+                except Exception as e:
+                    print(e)
             return data
 
         return wrapper
@@ -54,7 +46,7 @@ def cache_decorator(expire=10):
 
 
 @cache_route.get("/cache")
-async def get_cache(request: Request, current_user: dict = Depends(userRoute.get_current_user)) -> Dict:
+async def get_cache(request: Request, current_user: dict = Depends(userRoute.get_admin_user)) -> Dict:
     """
     API to fetch all data currently stored in the cache.
     Returns a dictionary of cached keys and their values.
@@ -65,8 +57,8 @@ async def get_cache(request: Request, current_user: dict = Depends(userRoute.get
     return {"cache": data}
 
 
-@ cache_route.post("/cache")
-async def add_to_cache(request: Request, key: str, value: str, expire: int = 3600, current_user: dict = Depends(userRoute.get_current_user)):
+@cache_route.post("/cache")
+async def add_to_cache(request: Request, key: str, value: str, expire: int = 3600, current_user: dict = Depends(userRoute.get_admin_user)):
     """
     API to add a key-value pair to the cache.
     """
@@ -74,8 +66,8 @@ async def add_to_cache(request: Request, key: str, value: str, expire: int = 360
     return {"message": f"Key '{key}' added to cache with expiration {expire} seconds."}
 
 
-@ cache_route.delete("/cache/{key}")
-async def delete_from_cache(key: str, request: Request, current_user: dict = Depends(userRoute.get_current_user)):
+@cache_route.delete("/cache/{key}")
+async def delete_from_cache(key: str, request: Request, current_user: dict = Depends(userRoute.get_admin_user)):
     """
     API to delete a specific key from the cache.
     """
@@ -85,10 +77,37 @@ async def delete_from_cache(key: str, request: Request, current_user: dict = Dep
     return {"error": f"Key '{key}' not found in cache."}
 
 
-@ cache_route.delete("/cache")
-async def clear_cache(request: Request, current_user: dict = Depends(userRoute.get_current_user)):
+@cache_route.delete("/cache/{method_name}/{req_path}")
+async def delete_from_cache(request: Request, method_name: str, req_path: str, current_user: dict = Depends(userRoute.get_admin_user)):
+    """
+    API to delete a specific key from the cache.
+    """
+    key = sha256(
+        f"{method_name}{req_path}".encode()).hexdigest()
+    print(key)
+    if key in cache:
+        cache.delete(key)
+        return {"message": f"Key '{key}' removed from cache."}
+    return {"error": f"Key '{key}' not found in cache."}
+
+
+@cache_route.delete("/cache")
+async def clear_cache(request: Request, current_user: dict = Depends(userRoute.get_admin_user)):
     """
     API to clear the entire cache.
     """
     cache.clear()
     return {"message": "All cache cleared successfully."}
+
+
+async def delete_from_cache(method_name: str, req_path: str):
+    """
+    API to delete a specific key from the cache.
+    """
+    key = sha256(
+        f"{method_name}{req_path}".encode()).hexdigest()
+    print(key)
+    if key in cache:
+        cache.delete(key)
+        return {"message": f"Key '{key}' removed from cache."}
+    return {"error": f"Key '{key}' not found in cache."}

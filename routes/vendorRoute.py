@@ -1,4 +1,5 @@
 
+from routes.cache_router import cache
 from sqlalchemy.orm import joinedload
 from fastapi import Depends, HTTPException, Request
 from fastapi import Depends
@@ -9,9 +10,9 @@ from models.users_model import get_db
 # import jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 import pytz
-
+import sys
 from reqSchemas.vendorSchema import AddressRequest, BankCreateRequest, UpdateAddress, VendorCreateRequest
-from routes.cache_router import cache_decorator
+from routes.cache_router import cache_decorator, delete_from_cache
 from routes.userRoute import get_admin_user, get_current_user
 
 vendorR = APIRouter(prefix='/vendor', tags=['Vendor'])
@@ -34,41 +35,44 @@ async def create_vendor(request: Request, vendor: VendorCreateRequest, current_u
     Returns:
         Vendor: The newly created vendor object.
     """
-    new_product = Vendor(**vendor.model_dump(exclude_unset=True)
-                         )
+    new_product = Vendor(**vendor.model_dump())
     try:
         db.add(new_product)
         await db.commit()
         await db.refresh(new_product)
+        cache.clear()
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))
         # return {"message": str(e)}
     return new_product
 
 
-# @vendorR.get("/all_vendors")
-# # @cache_decorator(expire=360)
-# async def get_all_vendors(request: Request, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-#     """
-#     Fetch all vendors from the database.
+@vendorR.get("/all_vendors")
+@cache_decorator(expire=360000)
+async def get_all_vendors(request: Request, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    """
+    Fetch all vendors from the database.
 
-#     This asynchronous function retrieves all vendor records from the database.
-#     It requires the current user to be an admin and uses dependency injection
-#     to get the database session.
+    This asynchronous function retrieves all vendor records from the database.
+    It requires the current user to be an admin and uses dependency injection
+    to get the database session.
 
-#     Args:
-#         current_user (dict): The current user, expected to be an admin.
-#         db (AsyncSession): The database session.
+    Args:
+        current_user (dict): The current user, expected to be an admin.
+        db (AsyncSession): The database session.
 
-#     Returns:
-#         list: A list of all vendor records.
-#     """
-#     result = await db.execute(select(Vendor))
-#     vendors = result.scalars().all()
-#     return vendors
+    Returns:
+        list: A list of all vendor records.
+    """
+    print(sys._getframe().f_code.co_name)
+    print(request.scope.get('path'))
+    result = await db.execute(select(Vendor))
+    vendors = result.scalars().all()
+    return vendors
 
 
 @vendorR.get("/all_vendors_all_details")
+@cache_decorator(expire=360000)
 async def get_all_vendors_all_details(request: Request, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Vendor).options(joinedload(Vendor.bank_accounts), (joinedload(Vendor.address))))
     vendors = result.scalars().unique().all()
@@ -76,6 +80,7 @@ async def get_all_vendors_all_details(request: Request, current_user: dict = Dep
 
 
 @vendorR.get("/email_phone/{email_phone}")
+@cache_decorator(expire=360000)
 async def get_vendor_by_email_or_phone(request: Request, email_phone: str, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     """
     Retrieve vendor details by email or phone number.
@@ -106,6 +111,7 @@ async def get_vendor_by_email_or_phone(request: Request, email_phone: str, curre
 
 
 @vendorR.get("/by_id/{vendor_id}")
+@cache_decorator(expire=360000)
 async def get_vendor(request: Request, vendor_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     """
     Endpoint to retrieve a vendor by its ID.
@@ -168,11 +174,12 @@ async def update_vendor(request: Request, vendor_id: int, vendor: VendorCreateRe
     if not existing_vendor:
         raise HTTPException(status_code=404, detail="Vendor not found")
 
-    for key, value in vendor.model_dump(exclude_unset=True).items():
+    for key, value in vendor.model_dump().items():
         setattr(existing_vendor, key, value)
 
     await db.commit()
     await db.refresh(existing_vendor)
+    cache.clear()
     return {"message": "Vendor updated successfully", "data": existing_vendor}
 
 
@@ -199,10 +206,12 @@ async def delete_vendor(request: Request, vendor_id: int, current_user: dict = D
         raise HTTPException(status_code=404, detail="Vendor not found")
     await db.delete(existing_vendor)
     await db.commit()
+    cache.clear()
     return {"message": "Vendor deleted successfully"}
 
 
 @vendorR.get("/all_bank_accounts")
+@cache_decorator(expire=360000)
 async def getAllBankAccounts(request: Request, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     """
     Get all bank accounts for all vendors.
@@ -220,6 +229,7 @@ async def getAllBankAccounts(request: Request, current_user: dict = Depends(get_
 
 
 @vendorR.get("/{vendor_id}/bank-accounts")
+@cache_decorator(expire=360000)
 async def getVendorBankAccounts(request: Request, vendor_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     """
     Get all bank accounts for a specific vendor.
@@ -259,11 +269,12 @@ async def add_bank_account(request: Request, vendor_id: int, bank: BankCreateReq
     vendor = result.scalar_one_or_none()
     if not vendor:
         raise HTTPException(status_code=404, detail="Vendor not found")
-    new_bank = Bank(**bank.model_dump(exclude_unset=True))
+    new_bank = Bank(**bank.model_dump())
     new_bank.vendor_id = vendor_id
     db.add(new_bank)
     await db.commit()
     await db.refresh(new_bank)
+    cache.clear()
     return {"message": "Bank account added successfully", "data": new_bank}
 
 
@@ -296,6 +307,7 @@ async def update_bank_account(request: Request, vendor_id: int, bank_id: int, ba
 
     await db.commit()
     await db.refresh(existing_bank)
+    cache.clear()
     return {"message": "Bank account updated successfully", "data": existing_bank}
 
 
@@ -324,10 +336,12 @@ async def delete_bank_account(request: Request, vendor_id: int, bank_id: int, cu
 
     await db.delete(bank)
     await db.commit()
+    cache.clear()
     return {"message": "Bank account deleted successfully"}
 
 
 @vendorR.get("/address")
+@cache_decorator(expire=360000)
 async def getAllAddress(request: Request, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
     result = await db.execute(select(Address))
     address = result.scalars().all()
@@ -335,6 +349,7 @@ async def getAllAddress(request: Request, db: AsyncSession = Depends(get_db), cu
 
 
 @vendorR.get("/address_by_id/{vendor_id}")
+@cache_decorator(expire=360000)
 async def getAddressByVendorId(request: Request, vendor_id: int, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
     result = await db.execute(select(Address).filter(Address.vendor_id == vendor_id))
     address = result.scalars().all()
@@ -348,11 +363,12 @@ async def addAddresss(request: Request, vendor_id: int, address: AddressRequest,
     vendor = result.scalar_one_or_none()
     if not vendor:
         raise HTTPException(status_code=404, detail="Vendor not found")
-    new_address = Address(**address.model_dump(exclude_unset=True))
+    new_address = Address(**address.model_dump())
     new_address.vendor_id = vendor_id
     db.add(new_address)
     await db.commit()
     await db.refresh(new_address)
+    cache.clear()
     return {"message": "Address added successfully", "data": new_address}
 
 
@@ -364,11 +380,12 @@ async def updateAddresss(request: Request, vendor_id: int, address_id: int, addr
     if not existing_address:
         raise HTTPException(status_code=404, detail="Address not found")
 
-    for key, value in addres.model_dump(exclude_unset=True).items():
+    for key, value in addres.model_dump().items():
         setattr(existing_address, key, value)
 
     await db.commit()
     await db.refresh(existing_address)
+    cache.clear()
     return {"message": "Address updated successfully", "data": existing_address}
 
 
@@ -382,4 +399,5 @@ async def delete_address(request: Request, vendor_id: int, address_id: int, curr
 
     await db.delete(address)
     await db.commit()
+    cache.clear()
     return {"message": "Address account deleted successfully"}

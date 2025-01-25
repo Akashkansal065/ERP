@@ -13,7 +13,7 @@ IST = pytz.timezone("Asia/Kolkata")
 class UnitEnum(PyEnum):
     CARTON_BOX = "Carton Box"
     EACH = "EACH"
-    KARTON = "karton"
+    KARTON = "KARTON"
     KG = "KG"
     PIECES = "PIECES"
     SET = "SET"
@@ -55,7 +55,8 @@ class ProductSku(Base):
     selling_price = Column(DECIMAL(10, 2), nullable=True)
     # images = Column(Text, nullable=True)
     hsn_sac_code = Column(String(50), nullable=True)
-    vendor_id = Column(Integer, ForeignKey("vendors.id", ondelete="CASCADE"), nullable=False)
+    vendor_id = Column(Integer, ForeignKey(
+        "vendors.id", ondelete="CASCADE"), nullable=False)
     is_active = Column(Boolean, default=1)
     is_gst_applicable = Column(Boolean, default=1)
     gst_rate = Column(DECIMAL(10, 2), default=0.00)
@@ -89,7 +90,8 @@ class ProductStockPrice(Base):
 class ProductImages(Base):
     __tablename__ = "product_images"
     id = Column(Integer, primary_key=True, index=True)
-    sku_id = Column(Integer, ForeignKey("product_sku.id", ondelete="CASCADE"), nullable=False)
+    sku_id = Column(Integer, ForeignKey("product_sku.id",
+                    ondelete="CASCADE"), nullable=False)
     image_url = Column(String(512), nullable=False)
     alt_text = Column(String(255), nullable=True)
     is_active = Column(Integer, default=1)
