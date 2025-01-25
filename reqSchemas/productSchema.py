@@ -6,10 +6,6 @@ from datetime import datetime
 from decimal import Decimal
 
 
-from pydantic import BaseModel
-from typing import List, Optional
-from datetime import datetime
-
 # Product schemas
 
 
@@ -112,6 +108,105 @@ class ImageCreate(ImageBase):
 class ImageResponse(ImageBase):
     id: int
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# Enum for vendor category
+class VendorCategoryEnum(str, PyEnum):
+    BUYER = "Buyer"
+    SUPPLIER = "Supplier"
+
+
+# Vendor schema
+class VendorResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    phone: str
+    category: VendorCategoryEnum
+    gst: Optional[str] = None
+    swift_code: Optional[str] = None
+    micr_code: Optional[str] = None
+    no_of_expiry_days: Optional[int] = None
+    min_order_value: Optional[str] = None
+    is_tax_exempted: Optional[str] = None
+    gl_code: Optional[str] = None
+    credit_days: Optional[int] = None
+    sor_days: Optional[int] = None
+    is_cost_based_on_margin: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# Product schema
+class ProductBase(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    category: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# Product image schema
+class ProductImageResponse(BaseModel):
+    id: int
+    sku_id: int
+    image_url: str
+    alt_text: Optional[str] = None
+    is_active: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# Product stock price schema
+class ProductStockPriceResponse(BaseModel):
+    id: int
+    sku_id: int
+    qty: int
+    purchase_price: float
+    warehouse: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# SKU schema with vendor details
+class ProductSkuResponse(BaseModel):
+    id: int
+    sku_name: str
+    company_name: str
+    sku: str
+    size: Optional[str]
+    weight: Optional[float]
+    color: Optional[str]
+    unit: UnitEnum
+    material: Optional[str]
+    selling_price: Optional[float]
+    hsn_sac_code: Optional[str]
+    is_active: bool
+    is_gst_applicable: bool
+    gst_rate: float
+    cgst: float
+    sgst: float
+    created_at: datetime
+    updated_at: datetime
+    product: ProductBase
+    vendor: VendorResponse
+    product_stock_price: List[ProductStockPriceResponse]
+    images: List[ProductImageResponse]
 
     class Config:
         from_attributes = True

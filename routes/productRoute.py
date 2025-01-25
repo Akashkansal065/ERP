@@ -2,9 +2,10 @@ from typing import List
 from utils.kitimages import imagekit
 from io import BytesIO
 from reqSchemas.productSchema import (
-    ImageCreate, ImageResponse, ProductCreate, ProductResponse,
+    ImageCreate, ImageResponse, ProductCreate, ProductResponse, ProductSkuResponse,
     SKUCreate, SKUResponse, StockPriceCreate, StockPriceResponse
 )
+from sqlalchemy.orm import selectinload
 from sqlalchemy.orm import joinedload
 from models.products_model import Product, ProductImages, ProductSku, ProductStockPrice
 from sqlalchemy.future import select
@@ -52,16 +53,21 @@ async def get_product(request: Request, current_user: dict = Depends(get_admin_u
     return product
 
 
-@productR.get("/get_products_sku_all")
-async def get_product(request: Request, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ProductSku).options(joinedload(ProductSku.product), joinedload(ProductSku.product_stock_price)))
-    product = result.scalars().unique().all()
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return product
-#  = relationship("Product", back_populates="variants")
-    # vendor = relationship("Vendor", back_populates="stock_entries")
-    # images = relationship("ProductImages", back_populates="sku")
+@productR.get("/get_products_sku_all", response_model=List[ProductSkuResponse])
+async def get_all_skus(request: Request, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(ProductSku)
+        .options(
+            selectinload(ProductSku.product),
+            selectinload(ProductSku.product_stock_price),
+            selectinload(ProductSku.vendor),
+            selectinload(ProductSku.images)
+        )
+    )
+    skus = result.scalars().all()
+    if not skus:
+        raise HTTPException(status_code=404, detail="No SKUs found")
+    return skus
 # SKU Endpoints
 
 
@@ -78,13 +84,23 @@ async def create_sku(request: Request, sku: SKUCreate, current_user: dict = Depe
     return new_sku
 
 
-@productR.get("/get_sku/{sku}", response_model=SKUResponse)
+@productR.get("/get_sku/{sku}", response_model=ProductSkuResponse)
 async def get_sku(request: Request, sku: str, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku))
-    sku = result.scalar_one_or_none()
-    if not sku:
+    result = await db.execute(
+        select(ProductSku)
+        .where(ProductSku.sku == sku)
+        .options(
+            # Load related product details
+            selectinload(ProductSku.product),
+            selectinload(ProductSku.vendor),
+            selectinload(ProductSku.product_stock_price),
+            selectinload(ProductSku.images)
+        )
+    )
+    sku_data = result.scalars().first()
+    if not sku_data:
         raise HTTPException(status_code=404, detail="SKU not found")
-    return sku
+    return sku_data
 
 
 @productR.put("/update_sku/{sku}", response_model=SKUResponse)
