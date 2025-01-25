@@ -78,18 +78,18 @@ async def create_sku(request: Request, sku: SKUCreate, current_user: dict = Depe
     return new_sku
 
 
-@productR.get("/get_sku/{sku_id}", response_model=SKUResponse)
-async def get_sku(request: Request, sku_id: str, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku_id))
+@productR.get("/get_sku/{sku}", response_model=SKUResponse)
+async def get_sku(request: Request, sku: str, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku))
     sku = result.scalar_one_or_none()
     if not sku:
         raise HTTPException(status_code=404, detail="SKU not found")
     return sku
 
 
-@productR.put("/update_sku/{sku_id}", response_model=SKUResponse)
-async def update_sku(request: Request, sku_id: str, sku_data: SKUCreate, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku_id))
+@productR.put("/update_sku/{sku}", response_model=SKUResponse)
+async def update_sku(request: Request, sku: str, sku_data: SKUCreate, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku))
     sku = result.scalar_one_or_none()
     if not sku:
         raise HTTPException(status_code=404, detail="SKU not found")
@@ -102,9 +102,9 @@ async def update_sku(request: Request, sku_id: str, sku_data: SKUCreate, current
     return sku
 
 
-@productR.delete("/delete_sku/{sku_id}")
-async def delete_sku(request: Request, sku_id: str, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku_id))
+@productR.delete("/delete_sku/{sku}")
+async def delete_sku(request: Request, sku: str, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku))
     sku = result.scalar_one_or_none()
     if not sku:
         raise HTTPException(status_code=404, detail="SKU not found")
@@ -115,9 +115,9 @@ async def delete_sku(request: Request, sku_id: str, current_user: dict = Depends
 
 
 # Stock and Price Endpoints
-@productR.post("/cretae_skus_stock_price/{sku_id}", response_model=StockPriceResponse)
-async def create_stock_price(request: Request, sku_id: str, stock_price: StockPriceCreate, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku_id))
+@productR.post("/create_skus_stock_price/{sku}", response_model=StockPriceResponse)
+async def create_stock_price(request: Request, sku: str, stock_price: StockPriceCreate, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku))
     sku = result.scalar_one_or_none()
     if not sku:
         raise HTTPException(status_code=404, detail="SKU not found")
@@ -129,9 +129,9 @@ async def create_stock_price(request: Request, sku_id: str, stock_price: StockPr
     return new_stock_price
 
 
-@productR.get("/stock_price/{sku_id}", response_model=StockPriceResponse)
-async def get_stock_price(request: Request, sku_id: str, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku_id))
+@productR.get("/stock_price/{sku}", response_model=StockPriceResponse)
+async def get_stock_price(request: Request, sku: str, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku))
     sku = result.scalar_one_or_none()
     if not sku:
         raise HTTPException(status_code=404, detail="SKU not found")
@@ -146,13 +146,13 @@ async def get_stock_price(request: Request, sku_id: str, current_user: dict = De
 
 @productR.post("/upload-image/", response_model=ImageResponse)
 async def upload_image(request: Request,
-                       sku_id: str = Form(...),
+                       sku: str = Form(...),
                        file: UploadFile = Form(...),
                        current_user: dict = Depends(get_admin_user),
                        db: AsyncSession = Depends(get_db)
                        ):
     # Check if SKU exists
-    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku_id))
+    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku))
     sku = result.scalar_one_or_none()
     if not sku:
         raise HTTPException(status_code=404, detail="SKU not found")
@@ -167,9 +167,9 @@ async def upload_image(request: Request,
             file=file_stream,
             file_name=file.filename,
             options={
-                "folder": f"/product_images/{sku_id}/",
+                "folder": f"/product_images/{sku}/",
                 "use_unique_file_name": True,
-                "tags": ["product", f"sku_{sku_id}"],
+                "tags": ["product", f"sku_{sku}"],
             }
         )
     except Exception as e:
@@ -180,7 +180,7 @@ async def upload_image(request: Request,
     new_image = ProductImages(
         sku_id=sku.id,
         image_url=upload_response.get("url"),
-        alt_text=sku_id
+        alt_text=sku
     )
 
     db.add(new_image)
@@ -190,8 +190,8 @@ async def upload_image(request: Request,
 
 
 @productR.get("/images/{image_id}", response_model=List[ImageResponse])
-async def get_image(request: Request, sku_id: str, image_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku_id))
+async def get_image(request: Request, sku: str, image_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku))
     sku = result.scalar_one_or_none()
     if not sku:
         raise HTTPException(status_code=404, detail="SKU not found")
