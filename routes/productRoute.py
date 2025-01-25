@@ -49,7 +49,7 @@ async def get_product(request: Request, current_user: dict = Depends(get_admin_u
     result = await db.execute(select(Product))
     product = result.scalars().all()
     if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
+        raise HTTPException(status_code=200, detail="Product not found")
     return product
 
 
