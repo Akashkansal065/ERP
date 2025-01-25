@@ -37,9 +37,11 @@ class ProductSku(Base):
     __tablename__ = "product_sku"
     id = Column(Integer, primary_key=True, index=True)
     product_id = Column(Integer, ForeignKey(
-        "products.id"), nullable=False, index=True)
+        "products.id", ondelete="CASCADE"), nullable=False, index=True)
     sku_name = Column(String(100),
                       nullable=False, index=True)
+    company_name = Column(String(100),
+                          nullable=False, index=True)
     sku = Column(String(100),
                  nullable=False, index=True, unique=True)
     size = Column(String(50), nullable=True)  # e.g., Small, Medium, Large
@@ -53,7 +55,7 @@ class ProductSku(Base):
     selling_price = Column(DECIMAL(10, 2), nullable=True)
     # images = Column(Text, nullable=True)
     hsn_sac_code = Column(String(50), nullable=True)
-    vendor_id = Column(Integer, ForeignKey("vendors.id"), nullable=False)
+    vendor_id = Column(Integer, ForeignKey("vendors.id", ondelete="CASCADE"), nullable=False)
     is_active = Column(Boolean, default=1)
     is_gst_applicable = Column(Boolean, default=1)
     gst_rate = Column(DECIMAL(10, 2), default=0.00)
@@ -71,7 +73,7 @@ class ProductStockPrice(Base):
     __tablename__ = "product_stock_price"
     id = Column(Integer, primary_key=True, index=True)
     sku_id = Column(Integer, ForeignKey(
-        "product_sku.id"), nullable=False, index=True)
+        "product_sku.id", ondelete="CASCADE"), nullable=False, index=True)
 
     qty = Column(Integer, server_default=text('0'))
     purchase_price = Column(DECIMAL(10, 2), nullable=False)
@@ -87,7 +89,7 @@ class ProductStockPrice(Base):
 class ProductImages(Base):
     __tablename__ = "product_images"
     id = Column(Integer, primary_key=True, index=True)
-    sku_id = Column(Integer, ForeignKey("product_sku.id"), nullable=False)
+    sku_id = Column(Integer, ForeignKey("product_sku.id", ondelete="CASCADE"), nullable=False)
     image_url = Column(String(512), nullable=False)
     alt_text = Column(String(255), nullable=True)
     is_active = Column(Integer, default=1)

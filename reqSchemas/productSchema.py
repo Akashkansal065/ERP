@@ -47,6 +47,7 @@ class UnitEnum(str, PyEnum):
 # SKU schemas
 class SKUBase(BaseModel):
     sku_name: str
+    company_name: str
     size: Optional[str] = None
     weight: Optional[float] = None
     color: Optional[str] = None
