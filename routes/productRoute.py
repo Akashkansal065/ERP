@@ -189,10 +189,15 @@ async def upload_image(request: Request,
     return new_image
 
 
-@productR.get("/images/{image_id}", response_model=ImageResponse)
-async def get_image(request: Request, image_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ProductImages).filter(ProductImages.id == image_id))
-    image = result.scalar_one_or_none()
+@productR.get("/images/{image_id}", response_model=List[ImageResponse])
+async def get_image(request: Request, sku_id: str, image_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku_id))
+    sku = result.scalar_one_or_none()
+    if not sku:
+        raise HTTPException(status_code=404, detail="SKU not found")
+
+    result = await db.execute(select(ProductImages).filter(ProductImages.sku_id == sku.id).filter(ProductImages.is_active == 1))
+    image = result.scalars().all()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
     return image
