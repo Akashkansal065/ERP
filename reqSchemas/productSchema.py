@@ -44,6 +44,7 @@ class UnitEnum(str, PyEnum):
 class SKUBase(BaseModel):
     sku_name: str
     company_name: str
+    sub_category: str
     size: Optional[str] = None
     weight: Optional[float] = None
     color: Optional[str] = None
@@ -55,6 +56,9 @@ class SKUBase(BaseModel):
     gst_rate: Optional[float] = 0.00
     cgst: Optional[float] = 0.00
     sgst: Optional[float] = 0.00
+    length: Optional[float] = 0.00
+    breadth: Optional[float] = 0.00
+    height: Optional[float] = 0.00
     unit: UnitEnum
 
 
@@ -79,6 +83,13 @@ class StockPriceBase(BaseModel):
     stock: int
     purchase_price: float
     warehouse: str
+
+    quantity: int
+    purchase_rate: float
+    invoice_number: str
+    invoice_date: datetime
+    weight: float
+    total_amount: float
 
 
 class StockPriceCreate(StockPriceBase):

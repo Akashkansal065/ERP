@@ -30,7 +30,7 @@ class Product(Base):
     updated_at = Column(DateTime, default=datetime.now(IST),
                         onupdate=datetime.now(IST))
 # Relationship
-    variants = relationship("ProductSku", back_populates="product")
+    skus = relationship("ProductSku", back_populates="product")
 
 
 class ProductSku(Base):
@@ -44,8 +44,8 @@ class ProductSku(Base):
                           nullable=False, index=True)
     sku = Column(String(100),
                  nullable=False, index=True, unique=True)
+    sub_category = Column(String(255), nullable=True)
     size = Column(String(50), nullable=True)  # e.g., Small, Medium, Large
-    weight = Column(DECIMAL(10, 3), nullable=True)  # e.g., 0.5 kg, 1.5 kg
     color = Column(String(50), nullable=True)  # e.g., Red, Blue, Green
     created_at = Column(DateTime, default=datetime.now(IST))
     updated_at = Column(DateTime, default=datetime.now(IST),
@@ -53,6 +53,9 @@ class ProductSku(Base):
     unit = Column(Enum(UnitEnum), nullable=False, default=UnitEnum.EACH)
     material = Column(String(50), nullable=True)  # e.g., Cotton, Silk, Wool
     selling_price = Column(DECIMAL(10, 2), nullable=True)
+    length = Column(DECIMAL(10, 2), nullable=True)
+    breadth = Column(DECIMAL(10, 2), nullable=True)
+    height = Column(DECIMAL(10, 2), nullable=True)
     # images = Column(Text, nullable=True)
     hsn_sac_code = Column(String(50), nullable=True)
     vendor_id = Column(Integer, ForeignKey(
@@ -63,9 +66,9 @@ class ProductSku(Base):
     cgst = Column(DECIMAL(10, 2), default=0.00)
     sgst = Column(DECIMAL(10, 2), default=0.00)
     # Relationships
-    product = relationship("Product", back_populates="variants")
+    product = relationship("Product", back_populates="skus")
     product_stock_price = relationship(
-        "ProductStockPrice", back_populates="variant")
+        "ProductStockPrice", back_populates="sku")
     vendor = relationship("Vendor", back_populates="stock_entries")
     images = relationship("ProductImages", back_populates="sku")
 
@@ -75,15 +78,18 @@ class ProductStockPrice(Base):
     id = Column(Integer, primary_key=True, index=True)
     sku_id = Column(Integer, ForeignKey(
         "product_sku.id", ondelete="CASCADE"), nullable=False, index=True)
-
-    qty = Column(Integer, server_default=text('0'))
-    purchase_price = Column(DECIMAL(10, 2), nullable=False)
+    quantity = Column(Integer, server_default=text('0'))
+    purchase_rate = Column(DECIMAL(10, 2), nullable=False)
     warehouse = Column(String(255), default="")
+    invoice_number = Column(String(100), unique=True, nullable=False)
+    invoice_date = Column(String(255), default="")
+    weight = Column(DECIMAL(10, 3), nullable=True)  # e.g., 0.5 kg, 1.5 kg
+    total_amount = Column(DECIMAL(10, 2), default=0.00)
     created_at = Column(DateTime, default=datetime.now(IST))
     updated_at = Column(DateTime, default=datetime.now(IST),
                         onupdate=datetime.now(IST))
     # Relationships
-    variant = relationship(
+    sku = relationship(
         "ProductSku", back_populates="product_stock_price")
 
 
