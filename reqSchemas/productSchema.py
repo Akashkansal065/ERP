@@ -46,7 +46,6 @@ class SKUBase(BaseModel):
     company_name: str
     sub_category: str
     size: Optional[str] = None
-    weight: Optional[float] = None
     color: Optional[str] = None
     material: Optional[str] = None
     selling_price: Optional[float] = None
@@ -79,30 +78,27 @@ class SKUResponse(SKUBase):
 
 
 # Stock and Price schemas
-class StockPriceBase(BaseModel):
-    stock: int
-    purchase_price: float
-    warehouse: str
-
+class ProductStockPriceCreateSchema(BaseModel):
+    sku_id: int
     quantity: int
     purchase_rate: float
-    invoice_number: str
-    invoice_date: datetime
+    warehouse: str
     weight: float
     total_amount: float
 
 
-class StockPriceCreate(StockPriceBase):
-    sku_id: int
+class InvoiceCreateSchema(BaseModel):
+    invoice_number: str
+    invoice_date: datetime
+    vendor_id: int
+    total_amount: float
+    stock_entries: List[ProductStockPriceCreateSchema]
 
 
-class StockPriceResponse(StockPriceBase):
+class InvoiceResponseSchema(InvoiceCreateSchema):
     id: int
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # Image schemas

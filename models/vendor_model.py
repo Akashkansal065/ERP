@@ -60,6 +60,7 @@ class Vendor(Base):
     stock_entries = relationship("ProductSku", back_populates="vendor")
     address = relationship(
         "Address", back_populates="vendor", cascade="all, delete-orphan")
+    invoices = relationship("Invoice", back_populates="vendor")
 
 
 class Bank(Base):

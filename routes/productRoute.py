@@ -2,12 +2,12 @@ from typing import List
 from utils.kitimages import imagekit
 from io import BytesIO
 from reqSchemas.productSchema import (
-    ImageCreate, ImageResponse, ProductCreate, ProductResponse, ProductSkuResponse,
-    SKUCreate, SKUResponse, StockPriceCreate, StockPriceResponse
+    ImageCreate, ImageResponse, InvoiceCreateSchema, InvoiceResponseSchema, ProductCreate, ProductResponse, ProductSkuResponse,
+    SKUCreate, SKUResponse
 )
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm import joinedload
-from models.products_model import Product, ProductImages, ProductSku, ProductStockPrice
+from models.products_model import Invoice, Product, ProductImages, ProductSku, ProductStockPrice
 from sqlalchemy.future import select
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile
 from fastapi import Depends, HTTPException
@@ -130,32 +130,59 @@ async def delete_sku(request: Request, sku: str, current_user: dict = Depends(ge
     return {"message": "SKU deleted successfully"}
 
 
-# Stock and Price Endpoints
-@productR.post("/create_skus_stock_price/{sku}", response_model=StockPriceResponse)
-async def create_stock_price(request: Request, sku: str, stock_price: StockPriceCreate, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku))
-    sku = result.scalar_one_or_none()
-    if not sku:
-        raise HTTPException(status_code=404, detail="SKU not found")
-    new_stock_price = ProductStockPrice(
-        sku_id=sku.id, **stock_price.model_dump())
-    db.add(new_stock_price)
+# # Stock and Price Endpoints
+# @productR.post("/create_skus_stock_price/{sku}", response_model=StockPriceResponse)
+# async def create_stock_price(request: Request, sku: str, stock_price: StockPriceCreate, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+#     result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku))
+#     sku = result.scalar_one_or_none()
+#     if not sku:
+#         raise HTTPException(status_code=404, detail="SKU not found")
+#     new_stock_price = ProductStockPrice(
+#         sku_id=sku.id, **stock_price.model_dump())
+#     db.add(new_stock_price)
+#     await db.commit()
+#     await db.refresh(new_stock_price)
+#     return new_stock_price
+
+
+# @productR.get("/stock_price/{sku}", response_model=StockPriceResponse)
+# async def get_stock_price(request: Request, sku: str, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+#     result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku))
+#     sku = result.scalar_one_or_none()
+#     if not sku:
+#         raise HTTPException(status_code=404, detail="SKU not found")
+#     stockresult = await db.execute(select(ProductStockPrice).filter(ProductStockPrice.sku_id == sku.id))
+#     stock_price = stockresult.scalar_one_or_none()
+#     if not stock_price:
+#         raise HTTPException(status_code=404, detail="Stock price not found")
+#     return stock_price
+
+@productR.post("/invoices", response_model=InvoiceResponseSchema)
+async def create_invoice_with_stock(invoice_data: InvoiceCreateSchema, db: AsyncSession = Depends(get_db)):
+    new_invoice = Invoice(
+        invoice_number=invoice_data.invoice_number,
+        invoice_date=invoice_data.invoice_date,
+        vendor_id=invoice_data.vendor_id,
+        total_amount=invoice_data.total_amount
+    )
+    db.add(new_invoice)
     await db.commit()
-    await db.refresh(new_stock_price)
-    return new_stock_price
+    await db.refresh(new_invoice)
 
+    for stock_entry in invoice_data.stock_entries:
+        new_stock = ProductStockPrice(
+            sku_id=stock_entry.sku_id,
+            quantity=stock_entry.quantity,
+            purchase_rate=stock_entry.purchase_rate,
+            warehouse=stock_entry.warehouse,
+            invoice_id=new_invoice.id,
+            weight=stock_entry.weight,
+            total_amount=stock_entry.total_amount
+        )
+        db.add(new_stock)
 
-@productR.get("/stock_price/{sku}", response_model=StockPriceResponse)
-async def get_stock_price(request: Request, sku: str, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku))
-    sku = result.scalar_one_or_none()
-    if not sku:
-        raise HTTPException(status_code=404, detail="SKU not found")
-    stockresult = await db.execute(select(ProductStockPrice).filter(ProductStockPrice.sku_id == sku.id))
-    stock_price = stockresult.scalar_one_or_none()
-    if not stock_price:
-        raise HTTPException(status_code=404, detail="Stock price not found")
-    return stock_price
+    await db.commit()
+    return new_invoice
 
 # Image Upload Endpoint
 
