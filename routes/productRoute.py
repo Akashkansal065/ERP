@@ -77,10 +77,13 @@ async def create_sku(request: Request, sku: SKUCreate, current_user: dict = Depe
     product = result.scalar_one_or_none()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    new_sku = ProductSku(**sku.model_dump())
-    db.add(new_sku)
-    await db.commit()
-    await db.refresh(new_sku)
+    try:
+        new_sku = ProductSku(**sku.model_dump())
+        db.add(new_sku)
+        await db.commit()
+        await db.refresh(new_sku)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     return new_sku
 
 
