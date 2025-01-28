@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import pytz
 
 from reqSchemas.productSchema import ProductCreate, ProductResponse
-from routes.userRoute import get_admin_user
+from routes.userRoute import get_admin_user, get_current_user
 
 productR = APIRouter(prefix='/product', tags=['Product'])
 UTC = pytz.utc
@@ -36,7 +36,7 @@ async def create_product(request: Request, product: ProductCreate, current_user:
 
 
 @productR.get("/get_product/{product_id}", response_model=ProductResponse)
-async def get_product(request: Request, product_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def get_product(request: Request, product_id: int, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Product).filter(Product.id == product_id))
     product = result.scalar_one_or_none()
     if not product:
@@ -45,7 +45,7 @@ async def get_product(request: Request, product_id: int, current_user: dict = De
 
 
 @productR.get("/get_products", response_model=List[ProductResponse])
-async def get_product(request: Request, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def get_product(request: Request, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Product))
     product = result.scalars().all()
     if not product:
@@ -54,7 +54,7 @@ async def get_product(request: Request, current_user: dict = Depends(get_admin_u
 
 
 @productR.get("/get_products_sku_all", response_model=List[ProductSkuResponse])
-async def get_all_skus(request: Request, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def get_all_skus(request: Request, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(ProductSku)
         .options(
@@ -88,7 +88,7 @@ async def create_sku(request: Request, sku: SKUCreate, current_user: dict = Depe
 
 
 @productR.get("/get_sku/{sku}", response_model=ProductSkuResponse)
-async def get_sku(request: Request, sku: str, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def get_sku(request: Request, sku: str, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(ProductSku)
         .where(ProductSku.sku == sku)
@@ -236,7 +236,7 @@ async def upload_image(request: Request,
 
 
 @productR.get("/images/{image_id}", response_model=List[ImageResponse])
-async def get_image(request: Request, sku: str, image_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def get_image(request: Request, sku: str, image_id: int, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku))
     sku = result.scalar_one_or_none()
     if not sku:
