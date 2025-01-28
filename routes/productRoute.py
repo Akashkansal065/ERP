@@ -106,7 +106,7 @@ async def get_sku(request: Request, sku: str, current_user: dict = Depends(get_c
     return sku_data
 
 
-@productR.get("/get_product_sku/{product_id}", response_model=List[SKUExtendedResponse])
+@productR.get("/get_product_skus/{product_id}", response_model=List[SKUExtendedResponse])
 async def get_sku(request: Request, product_id: int, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(ProductSku)
