@@ -99,7 +99,8 @@ class ProductStockPrice(Base):
     warehouse = Column(String(255), default="")
     invoice_id = Column(Integer, ForeignKey(
         "invoices.id", ondelete="CASCADE"), nullable=False)
-    weight = Column(DECIMAL(10, 3), nullable=True)  # e.g., 0.5 kg, 1.5 kg
+    weight = Column(DECIMAL(10, 3), nullable=True)
+    discount = Column(DECIMAL(10, 3), nullable=True)
     total_amount = Column(DECIMAL(10, 2), default=0.00)
     created_at = Column(DateTime, default=datetime.now(IST))
     updated_at = Column(DateTime, default=datetime.now(IST),

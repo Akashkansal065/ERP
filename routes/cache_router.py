@@ -67,7 +67,7 @@ async def add_to_cache(request: Request, key: str, value: str, expire: int = 360
 
 
 @cache_route.delete("/cache/{key}")
-async def delete_from_cache(key: str, request: Request, current_user: dict = Depends(userRoute.get_admin_user)):
+async def delete_from_cache_key(key: str, request: Request, current_user: dict = Depends(userRoute.get_admin_user)):
     """
     API to delete a specific key from the cache.
     """
@@ -100,7 +100,7 @@ async def clear_cache(request: Request, current_user: dict = Depends(userRoute.g
     return {"message": "All cache cleared successfully."}
 
 
-async def delete_from_cache(method_name: str, req_path: str):
+async def delete_cache(method_name: str, req_path: str):
     """
     API to delete a specific key from the cache.
     """
@@ -111,3 +111,15 @@ async def delete_from_cache(method_name: str, req_path: str):
         cache.delete(key)
         return {"message": f"Key '{key}' removed from cache."}
     return {"error": f"Key '{key}' not found in cache."}
+
+
+async def store_cache(method_name: str, req_path: str, data: str, expire=3600):
+    # Create a unique cache key based on function name and parameters
+    key = sha256(f"{method_name}{req_path}".encode()).hexdigest()
+    data = cache.get(key)
+    if not data:
+        try:
+            cache.set(key, data, expire=expire)
+        except Exception as e:
+            print(e)
+    return data

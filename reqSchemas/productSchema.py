@@ -207,6 +207,7 @@ class ProductSkuResponse(BaseModel):
     sku_name: str
     company_name: str
     sku: str
+    sub_category: str
     size: Optional[str]
     color: Optional[str]
     unit: UnitEnum
@@ -218,6 +219,9 @@ class ProductSkuResponse(BaseModel):
     gst_rate: float
     cgst: float
     sgst: float
+    length: Optional[float] = 0.00
+    breadth: Optional[float] = 0.00
+    height: Optional[float] = 0.00
     created_at: datetime
     updated_at: datetime
     product: ProductBase
