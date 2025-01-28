@@ -77,7 +77,18 @@ class SKUResponse(SKUBase):
         from_attributes = True
 
 
+class SKUExtendedResponse(SKUCreate):
+    id: int
+    product_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
 # Stock and Price schemas
+
+
 class ProductStockPriceCreateSchema(BaseModel):
     sku_id: int
     quantity: int

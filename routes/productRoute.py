@@ -3,7 +3,7 @@ from utils.kitimages import imagekit
 from io import BytesIO
 from reqSchemas.productSchema import (
     ImageCreate, ImageResponse, InvoiceCreateSchema, InvoiceResponseSchema, ProductCreate, ProductResponse, ProductSkuResponse,
-    SKUCreate, SKUResponse
+    SKUCreate, SKUExtendedResponse, SKUResponse
 )
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm import joinedload
@@ -101,6 +101,18 @@ async def get_sku(request: Request, sku: str, current_user: dict = Depends(get_c
         )
     )
     sku_data = result.scalars().first()
+    if not sku_data:
+        raise HTTPException(status_code=404, detail="SKU not found")
+    return sku_data
+
+
+@productR.get("/get_product_sku/{product_id}", response_model=List[SKUExtendedResponse])
+async def get_sku(request: Request, product_id: int, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(ProductSku)
+        .where(ProductSku.product_id == product_id)
+    )
+    sku_data = result.scalars().unique().all()
     if not sku_data:
         raise HTTPException(status_code=404, detail="SKU not found")
     return sku_data
