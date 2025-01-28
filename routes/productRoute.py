@@ -114,7 +114,7 @@ async def get_sku(request: Request, product_id: int, current_user: dict = Depend
     )
     sku_data = result.scalars().unique().all()
     if not sku_data:
-        raise HTTPException(status_code=404, detail="SKU not found")
+        raise HTTPException(status_code=200, detail="SKU's not found")
     return sku_data
 
 
