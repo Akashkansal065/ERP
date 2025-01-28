@@ -73,6 +73,22 @@ class ProductSku(Base):
     images = relationship("ProductImages", back_populates="sku")
 
 
+class Invoice(Base):
+    __tablename__ = "invoices"
+    id = Column(Integer, primary_key=True, index=True)
+    invoice_number = Column(String(255), unique=True, nullable=False)
+    invoice_date = Column(DateTime, nullable=False)
+    vendor_id = Column(Integer, ForeignKey(
+        "vendors.id", ondelete="CASCADE"), nullable=False)
+    total_amount = Column(DECIMAL(10, 2), nullable=False)
+    created_at = Column(DateTime, default=datetime.now(IST))
+    updated_at = Column(DateTime, default=datetime.now(IST),
+                        onupdate=datetime.now(IST))
+    # Relationships
+    vendor = relationship("Vendor", back_populates="invoices")
+    stock_entries = relationship("ProductStockPrice", back_populates="invoice")
+
+
 class ProductStockPrice(Base):
     __tablename__ = "product_stock_price"
     id = Column(Integer, primary_key=True, index=True)
@@ -93,22 +109,6 @@ class ProductStockPrice(Base):
         "ProductSku", back_populates="product_stock_price")
     invoice = relationship(
         "Invoice", back_populates="stock_entries")
-
-
-class Invoice(Base):
-    __tablename__ = "invoices"
-    id = Column(Integer, primary_key=True, index=True)
-    invoice_number = Column(String(255), unique=True, nullable=False)
-    invoice_date = Column(DateTime, nullable=False)
-    vendor_id = Column(Integer, ForeignKey(
-        "vendors.id", ondelete="CASCADE"), nullable=False)
-    total_amount = Column(DECIMAL(10, 2), nullable=False)
-    created_at = Column(DateTime, default=datetime.now(IST))
-    updated_at = Column(DateTime, default=datetime.now(IST),
-                        onupdate=datetime.now(IST))
-    # Relationships
-    vendor = relationship("Vendor", back_populates="invoices")
-    stock_entries = relationship("ProductStockPrice", back_populates="invoice")
 
 
 class ProductImages(Base):

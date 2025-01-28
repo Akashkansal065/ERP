@@ -197,7 +197,6 @@ class ProductSkuResponse(BaseModel):
     company_name: str
     sku: str
     size: Optional[str]
-    weight: Optional[float]
     color: Optional[str]
     unit: UnitEnum
     material: Optional[str]

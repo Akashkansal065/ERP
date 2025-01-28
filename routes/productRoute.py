@@ -68,9 +68,9 @@ async def get_all_skus(request: Request, current_user: dict = Depends(get_admin_
     if not skus:
         raise HTTPException(status_code=404, detail="No SKUs found")
     return skus
+
+
 # SKU Endpoints
-
-
 @productR.post("/create_sku", response_model=SKUResponse)
 async def create_sku(request: Request, sku: SKUCreate, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Product).filter(Product.id == sku.product_id))
