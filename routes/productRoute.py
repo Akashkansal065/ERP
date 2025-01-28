@@ -87,11 +87,11 @@ async def create_sku(request: Request, sku: SKUCreate, current_user: dict = Depe
     return new_sku
 
 
-@productR.get("/get_sku/{sku}", response_model=ProductSkuResponse)
-async def get_sku(request: Request, sku: str, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+@productR.get("/get_sku/{sku_id}", response_model=ProductSkuResponse)
+async def get_sku(request: Request, sku_id: int, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(ProductSku)
-        .where(ProductSku.sku == sku)
+        .where(ProductSku.id == sku_id)
         .options(
             # Load related product details
             selectinload(ProductSku.product),
@@ -118,9 +118,9 @@ async def get_sku(request: Request, product_id: int, current_user: dict = Depend
     return sku_data
 
 
-@productR.put("/update_sku/{sku}", response_model=SKUResponse)
-async def update_sku(request: Request, sku: str, sku_data: SKUCreate, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku))
+@productR.put("/update_sku/{sku_id}", response_model=SKUResponse)
+async def update_sku(request: Request, sku_id: int, sku_data: SKUCreate, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(ProductSku).filter(ProductSku.id == sku_id))
     sku = result.scalar_one_or_none()
     if not sku:
         raise HTTPException(status_code=404, detail="SKU not found")
@@ -133,9 +133,9 @@ async def update_sku(request: Request, sku: str, sku_data: SKUCreate, current_us
     return sku
 
 
-@productR.delete("/delete_sku/{sku}")
-async def delete_sku(request: Request, sku: str, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku))
+@productR.delete("/delete_sku/{sku_id}")
+async def delete_sku(request: Request, sku_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(ProductSku).filter(ProductSku.id == sku_id))
     sku = result.scalar_one_or_none()
     if not sku:
         raise HTTPException(status_code=404, detail="SKU not found")
