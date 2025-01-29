@@ -1,3 +1,6 @@
+from time import sleep
+from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException
 from typing import List
 from utils.kitimages import imagekit
 from io import BytesIO
@@ -172,8 +175,8 @@ async def delete_sku(request: Request, sku_id: int, current_user: dict = Depends
 #         raise HTTPException(status_code=404, detail="Stock price not found")
 #     return stock_price
 
-@productR.post("/invoices", response_model=InvoiceResponseSchema)
-async def create_invoice_with_stock(invoice_data: InvoiceCreateSchema, db: AsyncSession = Depends(get_db)):
+@productR.post("/create_invoice", response_model=InvoiceResponseSchema)
+async def create_invoice_with_stock(request: Request, invoice_data: InvoiceCreateSchema, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     new_invoice = Invoice(
         invoice_number=invoice_data.invoice_number,
         invoice_date=invoice_data.invoice_date,
@@ -197,20 +200,83 @@ async def create_invoice_with_stock(invoice_data: InvoiceCreateSchema, db: Async
         db.add(new_stock)
 
     await db.commit()
+    await db.refresh(new_stock)
     return new_invoice
 
-# Image Upload Endpoint
+
+@productR.put("/update_invoice", response_model=InvoiceResponseSchema)
+async def update_invoice_with_stock(
+    request: Request,
+    invoice_data: InvoiceCreateSchema,
+    current_user: dict = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+    max_retries: int = 3,  # Define maximum retry attempts
+):
+    retry_count = 0
+    while retry_count < max_retries:
+        try:
+            # Check if the invoice exists
+            check_invoice = await db.execute(
+                select(Invoice)
+                .filter(Invoice.id == invoice_data.id)
+                .options(selectinload(Invoice.stock_entries))
+            )
+            existing_invoice = check_invoice.scalar_one_or_none()
+            if not existing_invoice:
+                raise HTTPException(
+                    status_code=404, detail="Invoice not found")
+
+            # Update the existing invoice
+            existing_invoice.invoice_number = invoice_data.invoice_number
+            existing_invoice.invoice_date = invoice_data.invoice_date
+            existing_invoice.vendor_id = invoice_data.vendor_id
+            existing_invoice.total_amount = invoice_data.total_amount
+            await db.commit()
+            await db.refresh(existing_invoice)
+
+            # Clear old stock entries linked to this invoice
+            await db.execute(
+                select(ProductStockPrice)
+                .filter(ProductStockPrice.invoice_id == existing_invoice.id)
+            )
+            await db.commit()
+
+            # Add updated stock entries
+            for stock_entry in invoice_data.stock_entries:
+                new_stock = ProductStockPrice(
+                    sku_id=stock_entry.sku_id,
+                    quantity=stock_entry.quantity,
+                    purchase_rate=stock_entry.purchase_rate,
+                    warehouse=stock_entry.warehouse,
+                    invoice_id=existing_invoice.id,
+                    weight=stock_entry.weight,
+                    total_amount=stock_entry.total_amount,
+                )
+                db.add(new_stock)
+
+            await db.commit()
+            return existing_invoice
+
+        except SQLAlchemyError as e:
+            await db.rollback()
+            retry_count += 1
+            if retry_count >= max_retries:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to update invoice after {max_retries} attempts: {str(e)}",
+                )
+            sleep(1)  # Optional delay before retrying
 
 
 @productR.post("/upload-image/", response_model=ImageResponse)
 async def upload_image(request: Request,
-                       sku: str = Form(...),
+                       sku_id: int = Form(...),
                        file: UploadFile = Form(...),
                        current_user: dict = Depends(get_admin_user),
                        db: AsyncSession = Depends(get_db)
                        ):
     # Check if SKU exists
-    result = await db.execute(select(ProductSku).filter(ProductSku.sku == sku))
+    result = await db.execute(select(ProductSku).filter(ProductSku.id == sku_id))
     sku = result.scalar_one_or_none()
     if not sku:
         raise HTTPException(status_code=404, detail="SKU not found")
@@ -225,9 +291,9 @@ async def upload_image(request: Request,
             file=file_stream,
             file_name=file.filename,
             options={
-                "folder": f"/product_images/{sku}/",
+                "folder": f"/product_images/{sku.sku}/",
                 "use_unique_file_name": True,
-                "tags": ["product", f"sku_{sku}"],
+                "tags": ["product", f"sku_{sku.sku}"],
             }
         )
     except Exception as e:
@@ -238,7 +304,7 @@ async def upload_image(request: Request,
     new_image = ProductImages(
         sku_id=sku.id,
         image_url=upload_response.get("url"),
-        alt_text=sku
+        alt_text=sku.sku
     )
 
     db.add(new_image)
