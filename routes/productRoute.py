@@ -1,4 +1,6 @@
-from time import sleep
+import os
+import shutil
+from time import sleep, time
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException
 from typing import List
@@ -19,6 +21,8 @@ from models.products_model import Product
 from models.users_model import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 import pytz
+from fastapi import File, UploadFile
+from imagekitio.models.UploadFileRequestOptions import UploadFileRequestOptions
 
 from reqSchemas.productSchema import ProductCreate, ProductResponse
 from routes.userRoute import get_admin_user, get_current_user
@@ -268,34 +272,39 @@ async def update_invoice_with_stock(
             sleep(1)  # Optional delay before retrying
 
 
-@productR.post("/upload-image/", response_model=ImageResponse)
+@productR.post("/upload-image/")
 async def upload_image(request: Request,
-                       sku_id: int = Form(...),
-                       file: UploadFile = Form(...),
+                       sku_id: int,
+                       file: UploadFile = File(...),
                        current_user: dict = Depends(get_admin_user),
                        db: AsyncSession = Depends(get_db)
                        ):
-    # Check if SKU exists
+    try:
+        file_path = os.path.join("temp.png")
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error saving file: {str(e)}")
     result = await db.execute(select(ProductSku).filter(ProductSku.id == sku_id))
     sku = result.scalar_one_or_none()
     if not sku:
         raise HTTPException(status_code=404, detail="SKU not found")
-
-    # Read image file bytes
-    file_content = await file.read()
-    file_stream = BytesIO(file_content)
-
-    # Upload to ImageKit
     try:
-        upload_response = imagekit.upload(
-            file=file_stream,
-            file_name=file.filename,
-            options={
-                "folder": f"/product_images/{sku.sku}/",
-                "use_unique_file_name": True,
-                "tags": ["product", f"sku_{sku.sku}"],
-            }
+        options = UploadFileRequestOptions(
+            use_unique_file_name=False,
+            tags=["product", f"sku_{sku.sku}"],
+            folder=f"/product_images/{str(sku.sku).strip()}/",
+            is_private_file=False,
         )
+        result = imagekit.upload_file(file=open(file_path, "rb"),
+                                      file_name=str(
+                                          sku.sku_name).strip() + "_"+str(time()),
+                                      options=None)
+        # Raw Response
+        print(result.response_metadata.raw)
+        # print that uploaded file's ID
+        print(result.file_id)
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error uploading to ImageKit: {str(e)}")
@@ -303,7 +312,7 @@ async def upload_image(request: Request,
     # Store image URL in DB
     new_image = ProductImages(
         sku_id=sku.id,
-        image_url=upload_response.get("url"),
+        image_url=result.response_metadata.raw['url'],
         alt_text=sku.sku
     )
 
