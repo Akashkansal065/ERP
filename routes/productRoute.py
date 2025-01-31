@@ -7,7 +7,7 @@ from typing import List
 from utils.kitimages import imagekit
 from io import BytesIO
 from reqSchemas.productSchema import (
-    ImageCreate, ImageResponse, InvoiceCreateSchema, InvoiceResponseSchema, ProductCreate, ProductResponse, ProductSkuResponse,
+    ImageCreate, ImageResponse, InvoiceCreateSchema, InvoiceResponseSchema, ProductCreate, ProductImageResponse, ProductResponse, ProductSkuResponse,
     SKUCreate, SKUExtendedResponse, SKUResponse
 )
 from sqlalchemy.orm import selectinload
@@ -291,16 +291,18 @@ async def upload_image(request: Request,
     if not sku:
         raise HTTPException(status_code=404, detail="SKU not found")
     try:
+        folderName = f"product_images/{str(sku.id).strip()}/"
         options = UploadFileRequestOptions(
             use_unique_file_name=False,
             tags=["product", f"sku_{sku.sku}"],
-            folder=f"/product_images/{str(sku.sku).strip()}/",
+            folder=folderName,
+            # checks=f"'request.folder' : '/product_images/{str(sku.sku).strip()}/'",
             is_private_file=False,
         )
         result = imagekit.upload_file(file=open(file_path, "rb"),
                                       file_name=str(
                                           sku.sku_name).strip() + "_"+str(time()),
-                                      options=None)
+                                      options=options)
         # Raw Response
         print(result.response_metadata.raw)
         # print that uploaded file's ID
@@ -337,6 +339,15 @@ async def get_image(request: Request, sku: str, image_id: int, current_user: dic
     return image
 
 
+@productR.get("/images_sku_all/{sku_id}", response_model=List[ProductImageResponse])
+async def get_sku(request: Request, sku_id: int, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(ProductImages).where(ProductImages.sku_id == sku_id))
+    sku_data = result.scalars().all()
+    if not sku_data:
+        raise HTTPException(status_code=404, detail="SKU not found")
+    return sku_data
+
+
 @productR.delete("/delete-image/{image_id}")
 async def delete_image(image_id: int, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ProductImages).filter(ProductImages.id == image_id))
@@ -347,12 +358,14 @@ async def delete_image(image_id: int, current_user: dict = Depends(get_admin_use
 
     # Delete from ImageKit using file_id (optional)
     try:
-        file_id = image.image_url.split("/")[-1].split("?")[0]
-        imagekit.delete_file(file_id)
+        file_id = image.image_metadata['fileId']
+        result = imagekit.delete_file(file_id)
     except Exception as e:
+        await db.delete(image)
+        await db.commit()
         raise HTTPException(
             status_code=500, detail=f"Error deleting from ImageKit: {str(e)}")
-
+    print(result.response_metadata.raw)
     # Remove from database
     await db.delete(image)
     await db.commit()
