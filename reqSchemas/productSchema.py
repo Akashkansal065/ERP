@@ -126,6 +126,7 @@ class ImageCreate(ImageBase):
 class ImageResponse(ImageBase):
     id: int
     created_at: datetime
+    image_metadata: dict
 
     class Config:
         from_attributes = True
@@ -182,6 +183,7 @@ class ProductImageResponse(BaseModel):
     alt_text: Optional[str] = None
     is_active: int
     created_at: datetime
+    image_metadata: dict
 
     class Config:
         from_attributes = True

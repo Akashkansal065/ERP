@@ -313,7 +313,8 @@ async def upload_image(request: Request,
     new_image = ProductImages(
         sku_id=sku.id,
         image_url=result.response_metadata.raw['url'],
-        alt_text=sku.sku
+        alt_text=sku.sku,
+        image_metadata=result.response_metadata.raw
     )
 
     db.add(new_image)

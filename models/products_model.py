@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, DateTime, ForeignKey, DECIMAL, Text, text, Enum
+from sqlalchemy import JSON, Boolean, Column, Integer, String, DateTime, ForeignKey, DECIMAL, Text, text, Enum
 from datetime import datetime
 import pytz
 from sqlalchemy.orm import relationship
@@ -118,6 +118,7 @@ class ProductImages(Base):
     sku_id = Column(Integer, ForeignKey("product_sku.id",
                     ondelete="CASCADE"), nullable=False)
     image_url = Column(String(512), nullable=False)
+    image_metadata = Column(JSON, nullable=False)
     alt_text = Column(String(255), nullable=True)
     is_active = Column(Integer, default=1)
     created_at = Column(DateTime, default=datetime.now(IST))
