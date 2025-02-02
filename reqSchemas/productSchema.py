@@ -95,14 +95,14 @@ class ProductStockPriceCreateSchema(BaseModel):
     purchase_rate: float
     warehouse: str
     weight: float
-    total_amount: float
+    total_sku_amount: float
 
 
 class InvoiceCreateSchema(BaseModel):
     invoice_number: str
     invoice_date: datetime
     vendor_id: int
-    total_amount: float
+    total_invoice_amount: float
     stock_entries: List[ProductStockPriceCreateSchema]
 
 

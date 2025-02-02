@@ -77,6 +77,17 @@ async def get_all_skus(request: Request, current_user: dict = Depends(get_curren
     return skus
 
 
+@productR.get("/get_sku_all", response_model=List[SKUCreate])
+async def get_all_skus(request: Request, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(ProductSku)
+    )
+    skus = result.scalars().all()
+    if not skus:
+        raise HTTPException(status_code=404, detail="No SKUs found")
+    return skus
+
+
 # SKU Endpoints
 @productR.post("/create_sku", response_model=SKUResponse)
 async def create_sku(request: Request, sku: SKUCreate, current_user: dict = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
